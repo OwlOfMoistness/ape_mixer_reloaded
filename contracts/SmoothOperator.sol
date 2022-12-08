@@ -48,7 +48,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 
 		tokens[0] = IApeStaking.SingleNft(uint32(_out), uint224(primary == ALPHA ? ALPHA_SHARE : BETA_SHARE));
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(_out), uint32(_gammaId), uint184(GAMMA_SHARE), true);
-		// unstake and unbind dog from primary  if it exists
+		// unstake and unbind dog from primary if it exists
 		if (_gammaId > 0) {
 			apeStaking.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
@@ -111,7 +111,6 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		// send rewards of dog partiy
 		APE.transfer(manager,totalGamma);
 	}
-
 
 	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, bool _claimGamma) public onlyManager returns(uint256) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
