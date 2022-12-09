@@ -12,5 +12,8 @@ interface IApeMatcher {
 		address	doggoTokensOwner;	// owner of ape tokens attributed to doggo
 	}
 
-	//function matches(uint256) external view returns(GreatMatch memory);
+	struct DepositPosition {
+		uint32 count;
+		address depositor;
+	}
 }

@@ -32,6 +32,6 @@ You can exit an agreement before the specific period of time if the asset you ar
 ## <ins>What's the reward distribution?</ins>
 
 Data currently collected around this. Based on USD valuation, NFT is 2x the value of the apecoin couterpart. 1 BAYC ~= 2 * 10094 apecoins
-Taking this data, it would make sense to offer a 2:1 ratio for reward distribution. 
+Taking this data, it would make sense to offer a 2:1 ratio for reward distribution. On the other hand, "It takes 2 to tango" which has been said by a few people. 1:1 split seems also desirable.
 Furthermore, if a dog is attached to an agreement, the primary nft/token users received an extra 10%/5% respectively (TBD)
 Current management fee of 4% (bend dao has such %) is added when users claim their rewards. No fees on initial deposits.

@@ -36,3 +36,10 @@ after call:
 - if my system has nfts but no ape coins and bend dao has ape coins, redirect to me?
 - weekly calls to stay in sync
 - audit close to release
+
+
+- ape coin holder makes financial commitment. He just holds. ape coin is more affected by price volatility. privilege for nft holder.
+pool 1 more competitive => yield based on share
+pool 2-4 should be less , capped max amount => yield based on how many bored apes not really
+
+- chainlink feed
