@@ -9,11 +9,17 @@ import "../interfaces/IApeStaking.sol";
 
 contract SmoothOperator is Ownable, ISmoothOperator {
 
-	IApeStaking public constant apeStaking = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
-	IERC721Enumerable public constant ALPHA = IERC721Enumerable(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
-	IERC721Enumerable public constant BETA = IERC721Enumerable(0x60E4d786628Fea6478F785A6d7e704777c86a7c6);
-	IERC721Enumerable public constant GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
-	IERC20 public constant APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
+	// IApeStaking public constant apeStaking = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
+	// IERC721Enumerable public constant ALPHA = IERC721Enumerable(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+	// IERC721Enumerable public constant BETA = IERC721Enumerable(0x60E4d786628Fea6478F785A6d7e704777c86a7c6);
+	// IERC721Enumerable public constant GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
+	// IERC20 public constant APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
+
+	IApeStaking public immutable APE_STAKING;
+	IERC721Enumerable public immutable ALPHA;
+	IERC721Enumerable public immutable BETA;
+	IERC721Enumerable public immutable GAMMA;
+	IERC20 public immutable APE;
 
 	uint256 constant ALPHA_SHARE = 10094 ether;
 	uint256 constant BETA_SHARE = 2042 ether;
@@ -21,13 +27,18 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 
 	address public manager;
 
-	constructor(address _manager) {
+	constructor(address _manager, address a,address b,address c,address d,address e) {
+		ALPHA = IERC721Enumerable(a);
+		BETA = IERC721Enumerable(b);
+		GAMMA = IERC721Enumerable(c);
+		APE = IERC20(d);
+		APE_STAKING = IApeStaking(e);
 		manager = _manager;
 		ALPHA.setApprovalForAll(_manager, true);
 		BETA.setApprovalForAll(_manager, true);
 		GAMMA.setApprovalForAll(_manager, true);
 		APE.approve(_manager, type(uint256).max);
-		APE.approve(address(apeStaking), type(uint256).max);
+		APE.approve(address(APE_STAKING), type(uint256).max);
 	}
 
 	modifier onlyManager() {
@@ -50,16 +61,16 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(_out), uint32(_gammaId), uint184(GAMMA_SHARE), true);
 		// unstake and unbind dog from primary if it exists
 		if (_gammaId > 0) {
-			apeStaking.withdrawBAKC(
+			APE_STAKING.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
 			totalGamma = APE.balanceOf(address(this));
 		}
 		// unstake primary
 		if (primary == ALPHA)
-			apeStaking.withdrawBAYC(tokens, address(this));
+			APE_STAKING.withdrawBAYC(tokens, address(this));
 		else
-			apeStaking.withdrawMAYC(tokens, address(this));
+			APE_STAKING.withdrawMAYC(tokens, address(this));
 		primary.transferFrom(address(this), _receiver, _out);
 		totalPrimary = APE.balanceOf(address(this)) - totalGamma;
 		// send rewards of both dog and primary parties
@@ -67,15 +78,15 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		tokens[0].tokenId = uint32(_in);
 		// stake new primary
 		if (primary == ALPHA)
-			apeStaking.depositBAYC(tokens);
+			APE_STAKING.depositBAYC(tokens);
 		else
-			apeStaking.depositMAYC(tokens);
+			APE_STAKING.depositMAYC(tokens);
 		// stake and bind previous dog to new primary if it exists
 		if (_gammaId > 0) {
 			IApeStaking.PairNftDepositWithAmount[] memory nullPairD = new IApeStaking.PairNftDepositWithAmount[](0);
 			IApeStaking.PairNftDepositWithAmount[] memory pairD = new IApeStaking.PairNftDepositWithAmount[](1);
 			pairD[0] = IApeStaking.PairNftDepositWithAmount(uint32(_in), uint32(_gammaId), uint184(GAMMA_SHARE));
-			apeStaking.depositBAKC(
+			APE_STAKING.depositBAKC(
 				primary == ALPHA ? pairD : nullPairD,
 				primary == ALPHA ? nullPairD : pairD);
 		}
@@ -95,7 +106,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		tokens[0] = IApeStaking.SingleNft(uint32(_out), uint224(primary == ALPHA ? ALPHA_SHARE : BETA_SHARE));
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(_primaryId), uint32(_out), uint184(GAMMA_SHARE), true);
 		// unstake and unbind dog from primary
-		apeStaking.withdrawBAKC(
+		APE_STAKING.withdrawBAKC(
 			primary == ALPHA ? pair : nullPair,
 			primary == ALPHA ? nullPair : pair);
 		totalGamma = APE.balanceOf(address(this));
@@ -104,7 +115,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		IApeStaking.PairNftDepositWithAmount[] memory nullPairD = new IApeStaking.PairNftDepositWithAmount[](0);
 		IApeStaking.PairNftDepositWithAmount[] memory pairD = new IApeStaking.PairNftDepositWithAmount[](1);
 		pairD[0] = IApeStaking.PairNftDepositWithAmount(uint32(_primaryId), uint32(_in), uint184(GAMMA_SHARE));
-		apeStaking.depositBAKC(
+		APE_STAKING.depositBAKC(
 			primary == ALPHA ? pairD : nullPairD,
 			primary == ALPHA ? nullPairD : pairD);
 				totalGamma = APE.balanceOf(address(this)) - totalGamma;
@@ -121,15 +132,15 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		pair[0] = IApeStaking.PairNft(uint128(_tokenId), uint128(_gammaId));
 		if (_claimGamma) {
 			if (_gammaId > 0)
-				apeStaking.claimBAKC(
+				APE_STAKING.claimBAKC(
 					primary == ALPHA ? pair : nullPair,
 					primary == ALPHA ? nullPair : pair, address(this));
 		}
 		else {
 			if (primary == ALPHA)
-				apeStaking.claimBAYC(tokens, address(this));
+				APE_STAKING.claimBAYC(tokens, address(this));
 			else
-				apeStaking.claimMAYC(tokens, address(this));
+				APE_STAKING.claimMAYC(tokens, address(this));
 		}
 		uint256 total = APE.balanceOf(address(this));
 		APE.transfer(manager, total);
@@ -146,11 +157,11 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		pair[0] = IApeStaking.PairNftDepositWithAmount(uint32(_tokenId), uint32(_gammaId), uint184(GAMMA_SHARE));
 
 		if (primary == ALPHA)
-			apeStaking.depositBAYC(tokens);
+			APE_STAKING.depositBAYC(tokens);
 		else
-			apeStaking.depositMAYC(tokens);
+			APE_STAKING.depositMAYC(tokens);
 		if (_gammaId > 0)
-			apeStaking.depositBAKC(
+			APE_STAKING.depositBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
 	}
@@ -161,7 +172,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		IApeStaking.PairNftDepositWithAmount[] memory pair = new IApeStaking.PairNftDepositWithAmount[](1);
 		pair[0] = IApeStaking.PairNftDepositWithAmount(uint32(_tokenId), uint32(_gammaId), uint184(GAMMA_SHARE));
 
-		apeStaking.depositBAKC(
+		APE_STAKING.depositBAKC(
 			primary == ALPHA ? pair : nullPair,
 			primary == ALPHA ? nullPair : pair);
 	}
@@ -177,7 +188,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		IApeStaking.PairNftWithdrawWithAmount[] memory pair = new IApeStaking.PairNftWithdrawWithAmount[](1);
 
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(_tokenId), uint32(_gammaId), uint184(GAMMA_SHARE), true);
-		apeStaking.withdrawBAKC(
+		APE_STAKING.withdrawBAKC(
 			primary == ALPHA ? pair : nullPair,
 			primary == ALPHA ? nullPair : pair);
 		GAMMA.transferFrom(address(this), _receiver, _gammaId);
@@ -198,7 +209,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		tokens[0] = IApeStaking.SingleNft(uint32(tokenId), uint224(primaryShare));
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(tokenId), uint32(gammaId), uint184(GAMMA_SHARE), true);
 		if (gammaId > 0) {
-			apeStaking.withdrawBAKC(
+			APE_STAKING.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
 			GAMMA.transferFrom(address(this), _match.doggoOwner, gammaId);
@@ -206,9 +217,9 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			totalGamma = APE.balanceOf(address(this));
 		}
 		if (primary == ALPHA)
-			apeStaking.withdrawBAYC(tokens, address(this));
+			APE_STAKING.withdrawBAYC(tokens, address(this));
 		else
-			apeStaking.withdrawMAYC(tokens, address(this));
+			APE_STAKING.withdrawMAYC(tokens, address(this));
 		primary.transferFrom(address(this), _match.primaryOwner, tokenId);
 		APE.transfer(_match.primaryTokensOwner, primaryShare);
 		totalPrimary = APE.balanceOf(address(this)) - totalGamma;
