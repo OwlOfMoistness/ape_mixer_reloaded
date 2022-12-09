@@ -14,11 +14,17 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	uint256 constant public FEE = 40; // 4%
 	uint256 constant public DENOMINATOR = 1000;
 
-	IApeStaking public constant APE_STAKING = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
-	IERC721Enumerable public constant ALPHA = IERC721Enumerable(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
-	IERC721Enumerable public constant BETA = IERC721Enumerable(0x60E4d786628Fea6478F785A6d7e704777c86a7c6);
-	IERC721Enumerable public constant GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
-	IERC20 public constant APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
+	// IApeStaking public immutable APE_STAKING = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
+	// IERC721Enumerable public immutable ALPHA = IERC721Enumerable(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+	// IERC721Enumerable public immutable BETA = IERC721Enumerable(0x60E4d786628Fea6478F785A6d7e704777c86a7c6);
+	// IERC721Enumerable public immutable GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
+	// IERC20 public immutable APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
+
+	IApeStaking public immutable APE_STAKING;
+	IERC721Enumerable public immutable ALPHA;
+	IERC721Enumerable public immutable BETA;
+	IERC721Enumerable public immutable GAMMA;
+	IERC20 public immutable APE;
 
 	uint256 constant ALPHA_SHARE = 10094 ether; //bayc
 	uint256 constant BETA_SHARE = 2042 ether; // mayc
@@ -52,6 +58,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 
 	ISmoothOperator public smoothOperator; // add interface to our smooth operator
 
+	constructor(address a,address b,address c,address d,address e) {
+		ALPHA = IERC721Enumerable(a);
+		BETA = IERC721Enumerable(b);
+		GAMMA = IERC721Enumerable(c);
+		APE = IERC20(d);
+		APE_STAKING = IApeStaking(e);
+	} 
+
 	function setOperator(address _operator) external onlyOwner {
 		require(address(smoothOperator) == address(0));
 		smoothOperator = ISmoothOperator(_operator);
@@ -63,7 +77,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		APE.transfer(owner(), amount);
 	}
 
-	// TODO dogless implementation. loop when no more gamma ids
 	function depositNfts(
 		uint256[] calldata _alphaIds,
 		uint256[] calldata _betaIds,
@@ -136,7 +149,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
-				msg.sender == adds[2] || msg.sender == adds[3]);
+				msg.sender == adds[2] || msg.sender == adds[3], "!match");
 
 		bool claimGamma = msg.sender == adds[2] || msg.sender == adds[3];
 		bool claimPrimary = msg.sender == adds[0] || msg.sender == adds[1];
@@ -167,7 +180,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
-				msg.sender == adds[2] || msg.sender == adds[3]);
+				msg.sender == adds[2] || msg.sender == adds[3], "!match");
 		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "Must wait min duration to break clause");
 		bool breakGamma = msg.sender == adds[2] || msg.sender == adds[3];
 		bool primaryOwner = msg.sender == adds[0] || msg.sender == adds[1];
@@ -198,7 +211,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
-		require(msg.sender == adds[2] || msg.sender == adds[3]);
+		require(msg.sender == adds[2] || msg.sender == adds[3], "!dog match");
 
 		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId);
 		_processRewards(totalGamma, adds, msg.sender, true);
@@ -209,7 +222,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
-				msg.sender == adds[2] || msg.sender == adds[3]);
+				msg.sender == adds[2] || msg.sender == adds[3], "!match");
 		
 		uint256 index = 0;
 		for (; index < 4; index++)
@@ -574,7 +587,8 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 poolId = _nft == ALPHA ? 1 : (_nft == BETA ? 2 : 3);
 		for(uint256 i = 0; i < _tokenIds.length; i++) {
 			IApeStaking.Position memory pos = APE_STAKING.nftPosition(poolId, _tokenIds[i]);
-			require (pos.stakedAmount > 0, "ApeMatcher: NFT already commited");
+			require (pos.stakedAmount == 0, "ApeMatcher: NFT already commited");
+			require(_nft.ownerOf(_tokenIds[i]) == _user, "ApeMatcher: !owner");
 			assetToUser[address(_nft)][_tokenIds[i]] = _user;
 			_nft.transferFrom(_user, address(this), _tokenIds[i]);
 		}
@@ -582,7 +596,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 
 	function _withdrawNfts(IERC721Enumerable _nft, uint256[] calldata _tokenIds, address _user) internal {
 			for (uint256 i = 0; i < _tokenIds.length; i++) {
-			require(assetToUser[address(_nft)][_tokenIds[i]] == _user, "!owner");
+			require(assetToUser[address(_nft)][_tokenIds[i]] == _user, "ApeMatcher: !owner");
 			delete assetToUser[address(_nft)][_tokenIds[i]];
 			_nft.transferFrom(address(this), _user, _tokenIds[i]);
 		}
