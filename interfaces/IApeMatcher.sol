@@ -16,4 +16,6 @@ interface IApeMatcher {
 		uint32 count;
 		address depositor;
 	}
+
+	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external;
 }

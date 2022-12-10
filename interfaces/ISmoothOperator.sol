@@ -2,10 +2,10 @@ pragma solidity ^0.8.17;
 
 import "./IApeMatcher.sol";
 
-interface ISmoothOperator is IApeMatcher {
+interface ISmoothOperator {
 	function commitNFTs(address _primary, uint256 _tokenId, uint256 _gammaId) external;
 
-	function uncommitNFTs(GreatMatch calldata _match) external returns(uint256, uint256);
+	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external returns(uint256, uint256);
 
 	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, bool _claimGamma) external returns(uint256);
 
@@ -30,7 +30,8 @@ interface ISmoothOperator is IApeMatcher {
 		uint256 _tokenId,
 		uint256 _gammaId,
 		address _receiver,
-		address _tokenOwner) external returns(uint256 totalGamma);
+		address _tokenOwner,
+		address _caller) external returns(uint256 totalGamma);
 
 	
 }

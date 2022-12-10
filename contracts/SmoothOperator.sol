@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ISmoothOperator.sol";
 import "../interfaces/IApeStaking.sol";
+import "../interfaces/IApeMatcher.sol";
 
 
 contract SmoothOperator is Ownable, ISmoothOperator {
@@ -182,7 +183,8 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		uint256 _tokenId,
 		uint256 _gammaId,
 		address _receiver,
-		address _tokenOwner) external onlyManager returns(uint256 totalGamma) {
+		address _tokenOwner,
+		address _caller) external onlyManager returns(uint256 totalGamma) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		IApeStaking.PairNftWithdrawWithAmount[] memory nullPair = new IApeStaking.PairNftWithdrawWithAmount[](0);
 		IApeStaking.PairNftWithdrawWithAmount[] memory pair = new IApeStaking.PairNftWithdrawWithAmount[](1);
@@ -191,13 +193,15 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE_STAKING.withdrawBAKC(
 			primary == ALPHA ? pair : nullPair,
 			primary == ALPHA ? nullPair : pair);
-		GAMMA.transferFrom(address(this), _receiver, _gammaId);
-		APE.transfer(_tokenOwner, GAMMA_SHARE);
+		GAMMA.transferFrom(address(this), _receiver == _caller ? _receiver : manager, _gammaId);
+		APE.transfer(_tokenOwner == _caller ? _tokenOwner : manager, GAMMA_SHARE);
+		if (_tokenOwner != _caller)
+			IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _tokenOwner);
 		totalGamma = APE.balanceOf(address(this));
 		APE.transfer(manager, totalGamma);
 	}
 
-	function uncommitNFTs(GreatMatch calldata _match) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma) {
+	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma) {
 		IERC721Enumerable primary = _match.primary == 1 ? ALPHA : BETA;
 		uint256 tokenId = uint256(_match.ids & (2**48 - 1));
 		uint256 gammaId = uint256(_match.ids >> 48);
@@ -212,16 +216,22 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			APE_STAKING.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
-			GAMMA.transferFrom(address(this), _match.doggoOwner, gammaId);
-			APE.transfer(_match.doggoTokensOwner, GAMMA_SHARE);
+			GAMMA.transferFrom(address(this), _caller == _match.doggoOwner ?  _match.doggoOwner : manager, gammaId);
+			APE.transfer(_match.doggoTokensOwner == _caller ? _match.doggoTokensOwner : manager, GAMMA_SHARE);
+			if (_match.doggoTokensOwner != _caller)
+				IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _match.doggoTokensOwner);
 			totalGamma = APE.balanceOf(address(this));
 		}
 		if (primary == ALPHA)
 			APE_STAKING.withdrawBAYC(tokens, address(this));
 		else
 			APE_STAKING.withdrawMAYC(tokens, address(this));
-		primary.transferFrom(address(this), _match.primaryOwner, tokenId);
-		APE.transfer(_match.primaryTokensOwner, primaryShare);
+		primary.transferFrom(address(this), _caller == _match.primaryOwner ? _match.primaryOwner : manager, tokenId);
+		APE.transfer(_match.primaryTokensOwner == _caller ? _match.primaryTokensOwner : manager, primaryShare);
+		if (_match.primaryTokensOwner != _caller)
+			IApeMatcher(manager).depositApeTokenForUser(
+				primary == ALPHA ? [uint32(1), 0, 0] : [0, uint32(1), 0],
+				_match.primaryTokensOwner);
 		totalPrimary = APE.balanceOf(address(this)) - totalGamma;
 		APE.transfer(manager, totalPrimary + totalGamma);
 	}

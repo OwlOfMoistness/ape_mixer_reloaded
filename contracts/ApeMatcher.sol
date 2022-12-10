@@ -64,7 +64,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		GAMMA = IERC721Enumerable(c);
 		APE = IERC20(d);
 		APE_STAKING = IApeStaking(e);
-	} 
+	}
+
+	modifier onlyOperator() {
+		require(msg.sender == address(smoothOperator), "!smooooth");
+		_;
+	}
 
 	function setOperator(address _operator) external onlyOwner {
 		require(address(smoothOperator) == address(0));
@@ -91,6 +96,21 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_depositNfts(BETA, _betaIds, msg.sender);
 			_mixAndMatchBeta();
 		}
+		_bindDoggoToMatchId();
+	}
+
+	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external override onlyOperator {
+		uint256 totalDeposit = 0;
+		uint256[3] memory depositValues = [ALPHA_SHARE, BETA_SHARE, GAMMA_SHARE];
+		for(uint256 i = 0; i < 3; i++) {
+			totalDeposit += depositValues[i] * uint256(_depositAmounts[i]);
+			if (_depositAmounts[i] > 0)
+				_handleDeposit(depositValues[i], _depositAmounts[i], _user);
+			// TODO emit event somehow
+		}
+
+		_mixAndMatchAlpha();
+		_mixAndMatchBeta();
 		_bindDoggoToMatchId();
 	}
 
@@ -198,11 +218,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		else {
 			uint256 tokenId = _match.ids;
 			matches[_matchId].active = false;
-			delete assetToUser[_match.primary == 1 ? address(ALPHA) : address(BETA)][tokenId & 0xffffffffffff];
-			if (tokenId >> 48 > 0)
-				delete assetToUser[address(GAMMA)][tokenId >> 48];
 			// ensures all participants receive back their shares
-			(uint256 total, uint256 totalGamma) = smoothOperator.uncommitNFTs(_match);
+			(uint256 total, uint256 totalGamma) = smoothOperator.uncommitNFTs(_match, msg.sender);
+			if (msg.sender == adds[0])
+				delete assetToUser[_match.primary == 1 ? address(ALPHA) : address(BETA)][tokenId & 0xffffffffffff];
+			if (msg.sender == adds[2] && tokenId >> 48 > 0)
+				delete assetToUser[address(GAMMA)][tokenId >> 48];
 			delete matches[_matchId];
 			_processRewards(total, adds, msg.sender, false);
 			if (totalGamma > 0)
@@ -221,11 +242,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[2] || msg.sender == adds[3], "!dog match");
 
-		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId);
+		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender);
 		_processRewards(totalGamma, adds, msg.sender, true);
 	}
 
-	function smartBreakMatch(uint256 _matchId) external {
+	function batchsmartBreakMatch(uint256[] calldata _matchIds) external {
+		for (uint256 i = 0; i < _matchIds.length; i++)
+			smartBreakMatch(_matchIds[i]);
+	}
+
+	function smartBreakMatch(uint256 _matchId) public {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
@@ -530,16 +556,20 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
 	}
 
-	function _unbindDoggoFromMatchId(uint256 _matchId) internal returns(uint256 totalGamma) {
+	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller) internal returns(uint256 totalGamma) {
 		GreatMatch storage _match = matches[_matchId];
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
+		address dogOwner = _match.doggoOwner;
 		uint256 ids = _match.ids;
 		totalGamma = smoothOperator.unbindDoggoFromExistingPrimary(
 			primary,
 			ids & 0xffffffffffff,
 			ids >> 48,
-			_match.doggoOwner,
-			_match.doggoTokensOwner);
+			dogOwner,
+			_match.doggoTokensOwner,
+			_caller);
+		if (dogOwner == _caller)	
+			delete assetToUser[address(GAMMA)][ids >> 48];
 		_match.doggoOwner = address(0);
 		_match.doggoTokensOwner = address(0);
 		doglessMatches[doglessMatchCounter++] = _matchId;
@@ -548,6 +578,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 
 	function _handleDeposit(uint256 _type, uint32 _amount, address _user) internal {
 		if (_type == ALPHA_SHARE) {
+			// emit DepositPositionCreated(_user, alphaDepositCounter, ALPHA_SHARE, _amount);
 			depositPosition[ALPHA_SHARE][alphaDepositCounter++] = DepositPosition(_amount, _user);
 			alphaCurrentTotalDeposits += _amount;
 		}

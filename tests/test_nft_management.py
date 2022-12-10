@@ -104,3 +104,10 @@ def test_revert_withdraw_someone_elses_assets(matcher, bayc, nft_guy, other_guy)
 		matcher.withdrawNfts([], [1,2,3,4,5], [1,2,3,4,5], {'from':other_guy})
 	with reverts('ApeMatcher: !owner'):
 		matcher.withdrawNfts([], [], [1,2,3,4,5], {'from':other_guy})
+
+def test_revert_deposit_already_committed(matcher, bayc, ape, ape_staking, nft_guy, other_guy):
+	ape.mint(nft_guy, '10094 ether')
+	ape.approve(ape_staking, 2 ** 256 - 2, {'from':nft_guy})
+	ape_staking.depositBAYC([(6, Wei('10094 ether'))], {'from':nft_guy})
+	with reverts('ApeMatcher: NFT already commited'):
+		matcher.depositNfts([6], [], [], {'from':nft_guy})

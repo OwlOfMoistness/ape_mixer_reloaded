@@ -18,6 +18,10 @@ def nft_guy(accounts):
     return accounts[2]
 
 @pytest.fixture(scope="module")
+def dog_guy(accounts):
+    return accounts[5]
+
+@pytest.fixture(scope="module")
 def other_guy(accounts):
     return accounts[3]
 
