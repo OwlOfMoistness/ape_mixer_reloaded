@@ -234,9 +234,306 @@ def test_dogs_then_primary(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ap
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(17)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2,(22 << 48) + 24, nft_guy, coin_guy, nft_guy, coin_guy)
 
-# tests to add:
-# - test_dogs_then_primary_first_coins
-# - test_more_primary_than_dogs
-# - test_less primary_than_dogs
-# - test_more_primary_than_dogs__dog_first
-# - test_less primary_than_dogs__dog_first
+def test_dogs_then_primary_first_coins(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	bakc.mint(nft_guy, 10)
+	pre = ape.balanceOf(ape_staking)
+	matcher.depositApeToken([0,0,4], {'from':coin_guy})
+	matcher.depositNfts([], [], [31,32,33,34], {'from':nft_guy})
+	assert bakc.balanceOf(matcher) == 4
+	assert ape.balanceOf(matcher) == BAKC_CAP * 4
+	assert matcher.gammaDepositCounter() == 6
+	assert matcher.gammaCurrentTotalDeposits() == 4
+	assert matcher.doglessMatchCounter() == 0
+
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	matcher.depositApeToken([1,3,0], {'from':coin_guy})
+	matcher.depositNfts([34], [31,32,33], [], {'from':nft_guy})
+	assert bakc.balanceOf(matcher) == 0
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert ape.balanceOf(matcher) == 0
+	assert matcher.gammaCurrentTotalDeposits() == 0
+	assert matcher.alphaCurrentTotalDeposits() == 0
+	assert matcher.betaCurrentTotalDeposits() == 0
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaSpentCounter() == 6
+	assert matcher.alphaSpentCounter() == 5
+	assert matcher.betaSpentCounter() == 5
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(18)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1,(31 << 48) + 34, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(19)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2,(34 << 48) + 31, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(20)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2,(33 << 48) + 33, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(21)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2,(32 << 48) + 32, nft_guy, coin_guy, nft_guy, coin_guy)
+
+
+def test_more_primary_deposits(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	matcher.depositNfts([40, 41, 42, 43], [44, 45, 46, 47], [], {'from':nft_guy})
+	matcher.depositApeToken([3,3,0], {'from':coin_guy})
+	assert bayc.balanceOf(matcher) == 1
+	assert mayc.balanceOf(matcher) == 1
+	assert matcher.alphaCurrentTotalDeposits() == 0
+	assert matcher.betaCurrentTotalDeposits() == 0
+	assert matcher.alphaDepositCounter() == 6
+	assert matcher.betaDepositCounter() == 6
+	assert matcher.alphaSpentCounter() == 6
+	assert matcher.betaSpentCounter() == 6
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(22)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 40, nft_guy, coin_guy, NULL, NULL)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(23)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 43, nft_guy, coin_guy, NULL, NULL)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(24)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 42, nft_guy, coin_guy, NULL, NULL)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(25)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 44, nft_guy, coin_guy, NULL, NULL)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(26)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 47, nft_guy, coin_guy, NULL, NULL)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(27)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 46, nft_guy, coin_guy, NULL, NULL)
+	assert matcher.doglessMatchCounter() == 6
+
+def test_fill_match_batch(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	bakc.mint(nft_guy, 10)
+	pre = ape.balanceOf(ape_staking)
+	matcher.depositApeToken([0,0,2], {'from':coin_guy})
+	matcher.depositNfts([], [], [41,42], {'from':nft_guy})
+	assert matcher.gammaDepositCounter() == 7
+	assert matcher.gammaSpentCounter() == 7
+	assert matcher.gammaCurrentTotalDeposits() == 0
+	assert matcher.doglessMatchCounter() == 4
+
+	matcher.depositApeToken([0,0,2], {'from':coin_guy})
+	matcher.depositNfts([], [], [43,44], {'from':nft_guy})
+	assert matcher.gammaDepositCounter() == 8
+	assert matcher.gammaSpentCounter() == 8
+	assert matcher.gammaCurrentTotalDeposits() == 0
+	assert matcher.doglessMatchCounter() == 2
+
+	matcher.depositApeToken([0,0,2], {'from':coin_guy})
+	matcher.depositNfts([], [], [45,46], {'from':nft_guy})
+	assert matcher.gammaDepositCounter() == 9
+	assert matcher.gammaSpentCounter() == 9
+	assert matcher.gammaCurrentTotalDeposits() == 0
+	assert matcher.doglessMatchCounter() == 0
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(22)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (46 << 48) + 40, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(23)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (45 << 48) + 43, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(24)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (44 << 48) + 42, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(25)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (43 << 48) + 44, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(26)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (42 << 48) + 47, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(27)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (41 << 48) + 46, nft_guy, coin_guy, nft_guy, coin_guy)
+
+def test_less_primary_deposits(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	matcher.depositNfts([48], [49], [], {'from':nft_guy})
+	ape.mint(coin_guy, '110000 ether')
+	matcher.depositApeToken([4,4,0], {'from':coin_guy})
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert matcher.alphaDepositCounter() == 7
+	assert matcher.betaDepositCounter() == 7
+	assert matcher.alphaSpentCounter() == 6
+	assert matcher.betaSpentCounter() == 6
+	assert matcher.depositPosition(MAYC_CAP, 6) == (2, coin_guy)
+	assert matcher.depositPosition(BAYC_CAP, 6) == (2, coin_guy)
+	assert matcher.doglessMatchCounter() == 4 
+
+def test_more_primary_than_dogs(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	matcher.depositNfts([50,51], [52,53], [], {'from':nft_guy})
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert matcher.doglessMatchCounter() == 8
+	assert matcher.alphaSpentCounter() == 7
+	assert matcher.betaSpentCounter() == 7
+	matcher.depositApeToken([0,0,6], {'from':coin_guy})
+	matcher.depositNfts([], [], [55, 56, 57, 58, 59, 60], {'from':nft_guy})
+	assert matcher.doglessMatchCounter() == 2
+	assert matcher.gammaDepositCounter() == 10
+	assert matcher.gammaSpentCounter() == 10
+# 41  48        50  51
+#        45  49       52  53
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(30)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (56 << 48) + 45, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(31)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (57 << 48) + 49, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(32)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (58 << 48) + 50, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(33)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (59 << 48) + 51, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(34)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (60 << 48) + 52, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(35)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (55 << 48) + 53, nft_guy, coin_guy, nft_guy, coin_guy)
+
+	matcher.depositApeToken([0,0,2], {'from':coin_guy})
+	matcher.depositNfts([], [], [53, 54], {'from':nft_guy})
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaDepositCounter() == 11
+	assert matcher.gammaSpentCounter() == 11
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert bakc.balanceOf(matcher) == 0
+
+def test_less_primary_than_dogs(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	matcher.depositNfts([60,61], [62,63], [], {'from':nft_guy})
+	matcher.depositApeToken([2,2,0], {'from':coin_guy})
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert matcher.doglessMatchCounter() == 4
+	assert matcher.alphaSpentCounter() == 8
+	assert matcher.betaSpentCounter() == 8
+	matcher.depositApeToken([0,0,6], {'from':coin_guy})
+	matcher.depositNfts([], [], [65, 66, 67, 68, 69, 70], {'from':nft_guy})
+	assert bakc.balanceOf(matcher) == 2
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaDepositCounter() == 12
+	assert matcher.gammaSpentCounter() == 11
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(36)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (68 << 48) + 60, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(37)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (69 << 48) + 61, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(38)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (70 << 48) + 62, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(39)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (65 << 48) + 63, nft_guy, coin_guy, nft_guy, coin_guy)
+
+	matcher.depositNfts([64], [65], [], {'from':nft_guy})
+	matcher.depositApeToken([1,1,0], {'from':coin_guy})
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaDepositCounter() == 12
+	assert matcher.gammaSpentCounter() == 12
+	assert matcher.alphaSpentCounter() == 9
+	assert matcher.betaSpentCounter() == 9
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(40)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (67 << 48) + 64, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(41)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (66 << 48) + 65, nft_guy, coin_guy, nft_guy, coin_guy)
+
+def test_all_in_one(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	ape.mint(coin_guy, '110000 ether')
+
+	pre_a = bayc.balanceOf(smooth)
+	pre_b = mayc.balanceOf(smooth)
+	pre_d = bakc.balanceOf(smooth)
+	matcher.depositNfts([71,72], [73,74], [71,72,73,74], {'from':nft_guy})
+	matcher.depositApeToken([2,2,4], {'from':coin_guy})
+	assert bayc.balanceOf(smooth) - pre_a == 2
+	assert mayc.balanceOf(smooth) - pre_b == 2
+	assert bakc.balanceOf(smooth) - pre_d == 4
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaDepositCounter() == 13
+	assert matcher.gammaSpentCounter() == 13
+	assert matcher.alphaSpentCounter() == 10
+	assert matcher.betaSpentCounter() == 10
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(42)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (71 << 48) + 71, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(43)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (74 << 48) + 72, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(44)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (73 << 48) + 73, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(45)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (72 << 48) + 74, nft_guy, coin_guy, nft_guy, coin_guy)
+
+
+def test_all_in_one_inverse(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	ape.mint(coin_guy, '110000 ether')
+
+	pre_a = bayc.balanceOf(smooth)
+	pre_b = mayc.balanceOf(smooth)
+	pre_d = bakc.balanceOf(smooth)
+	matcher.depositApeToken([2,2,4], {'from':coin_guy})
+	matcher.depositNfts([82,83], [80,81], [84,85,86,87], {'from':nft_guy})
+	assert bayc.balanceOf(smooth) - pre_a == 2
+	assert mayc.balanceOf(smooth) - pre_b == 2
+	assert bakc.balanceOf(smooth) - pre_d == 4
+	assert matcher.doglessMatchCounter() == 0
+	assert matcher.gammaDepositCounter() == 14
+	assert matcher.gammaSpentCounter() == 14
+	assert matcher.alphaSpentCounter() == 11
+	assert matcher.betaSpentCounter() == 11
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(46)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (84 << 48) + 82, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(47)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (87 << 48) + 83, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(48)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (86 << 48) + 80, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(49)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (85 << 48) + 81, nft_guy, coin_guy, nft_guy, coin_guy)
+
+def test_less_primary_than_dogs__dog_first(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	ape.mint(coin_guy, '110000 ether')
+
+	matcher.depositApeToken([2,2,5], {'from':coin_guy})
+	matcher.depositNfts([], [], [91,92,93,94,95], {'from':nft_guy})
+	matcher.depositNfts([91,92], [93,94], [], {'from':nft_guy})
+	assert bakc.balanceOf(matcher) == 1
+	assert matcher.alphaSpentCounter() == 12
+	assert matcher.betaSpentCounter() == 12
+	assert matcher.gammaDepositCounter() == 15
+	assert matcher.gammaSpentCounter() == 14
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(50)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (91 << 48) + 91, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(51)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (95 << 48) + 92, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(52)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (94 << 48) + 93, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(53)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (93 << 48) + 94, nft_guy, coin_guy, nft_guy, coin_guy)
+
+def test_more_primary_than_dogs__dog_first(matcher, ape, bayc, mayc, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
+	mayc.mint(nft_guy, 10)
+	bayc.mint(nft_guy, 10)
+	bakc.mint(nft_guy, 10)
+	matcher.depositApeToken([2,3,3], {'from':coin_guy})
+	matcher.depositNfts([], [], [101,102,103], {'from':nft_guy})
+	matcher.depositNfts([109, 108], [107, 106, 105], [], {'from':nft_guy})
+	assert bayc.balanceOf(matcher) == 0
+	assert mayc.balanceOf(matcher) == 0
+	assert bakc.balanceOf(matcher) == 0
+
+	assert matcher.alphaSpentCounter() == 13
+	assert matcher.betaSpentCounter() == 13
+	assert matcher.gammaDepositCounter() == 16
+	assert matcher.gammaSpentCounter() == 16
+
+
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(54)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (92 << 48) + 109, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(55)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (103 << 48) + 108, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(56)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (102 << 48) + 107, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(57)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (101 << 48) + 105, nft_guy, coin_guy, nft_guy, coin_guy)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(58)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 106, nft_guy, coin_guy, NULL, NULL)
