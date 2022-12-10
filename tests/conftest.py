@@ -70,9 +70,6 @@ def ape_staking(ApeCoinStaking, admin, bayc, mayc, bakc, ape):
 def matcher(ApeMatcher, admin, bayc, mayc, bakc, ape, ape_staking):
 	return ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 
-@pytest.fixture(scope="module")
-def matcher(ApeMatcher, admin, bayc, mayc, bakc, ape, ape_staking):
-	return ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 
 @pytest.fixture(scope="module")
 def smooth(SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, matcher):

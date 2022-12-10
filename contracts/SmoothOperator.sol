@@ -15,11 +15,11 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 	// IERC721Enumerable public constant GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
 	// IERC20 public constant APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
 
-	IApeStaking public immutable APE_STAKING;
-	IERC721Enumerable public immutable ALPHA;
-	IERC721Enumerable public immutable BETA;
-	IERC721Enumerable public immutable GAMMA;
-	IERC20 public immutable APE;
+	IApeStaking public APE_STAKING;
+	IERC721Enumerable public ALPHA;
+	IERC721Enumerable public BETA;
+	IERC721Enumerable public GAMMA;
+	IERC20 public APE;
 
 	uint256 constant ALPHA_SHARE = 10094 ether;
 	uint256 constant BETA_SHARE = 2042 ether;
