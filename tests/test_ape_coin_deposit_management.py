@@ -11,6 +11,8 @@ MAYC_CAP = 2042000000000000000000
 BAKC_CAP = 856000000000000000000
 
 def test_deposit_one_type(matcher, ape, nft_guy):
+	with reverts('!smooooth'):
+		matcher.depositApeTokenForUser([10,10,10], nft_guy, {'from':nft_guy})
 
 	ape.mint(nft_guy, '10_000_000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':nft_guy})

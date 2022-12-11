@@ -26,6 +26,10 @@ def other_guy(accounts):
     return accounts[3]
 
 @pytest.fixture(scope="module")
+def some_guy(accounts):
+    return accounts[6]
+
+@pytest.fixture(scope="module")
 def mix_guy(accounts):
     return accounts[4]
 
@@ -47,8 +51,8 @@ def ape(ApeCoin, admin):
 
 @pytest.fixture(scope="module")
 def ape_staking(ApeCoinStaking, admin, bayc, mayc, bakc, ape):
-	ape.mint(admin, '100000000 ether', {'from':admin})
 	staking =  ApeCoinStaking.deploy(ape, bayc, mayc, bakc, {'from':admin})
+	ape.mint(staking, '100000000 ether', {'from':admin})
 	staking.addTimeRange(0, 10500000000000000000000000, 1670864400, 1678726800,0,{'from':admin})
 	staking.addTimeRange(0, 9000000000000000000000000, 1678726800, 1686675600,0,{'from':admin})
 	staking.addTimeRange(0, 6000000000000000000000000, 1686675600, 1694538000,0,{'from':admin})

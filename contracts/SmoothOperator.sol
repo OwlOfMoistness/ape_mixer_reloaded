@@ -65,7 +65,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			APE_STAKING.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
-			totalGamma = APE.balanceOf(address(this));
+			totalGamma = APE.balanceOf(address(this)) - GAMMA_SHARE;
 		}
 		// unstake primary
 		if (primary == ALPHA)
@@ -73,7 +73,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		else
 			APE_STAKING.withdrawMAYC(tokens, address(this));
 		primary.transferFrom(address(this), _receiver, _out);
-		totalPrimary = APE.balanceOf(address(this)) - totalGamma;
+		totalPrimary = APE.balanceOf(address(this)) - totalGamma - (primary == ALPHA ? ALPHA_SHARE : BETA_SHARE);
 		// send rewards of both dog and primary parties
 		APE.transfer(manager, totalPrimary + totalGamma);
 		tokens[0].tokenId = uint32(_in);
@@ -110,7 +110,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE_STAKING.withdrawBAKC(
 			primary == ALPHA ? pair : nullPair,
 			primary == ALPHA ? nullPair : pair);
-		totalGamma = APE.balanceOf(address(this));
+		totalGamma = APE.balanceOf(address(this)) - GAMMA_SHARE;
 		GAMMA.transferFrom(address(this), _receiver, _out);
 		// stake and bind previous dog to new primary
 		IApeStaking.PairNftDepositWithAmount[] memory nullPairD = new IApeStaking.PairNftDepositWithAmount[](0);
@@ -119,7 +119,6 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE_STAKING.depositBAKC(
 			primary == ALPHA ? pairD : nullPairD,
 			primary == ALPHA ? nullPairD : pairD);
-				totalGamma = APE.balanceOf(address(this)) - totalGamma;
 		// send rewards of dog partiy
 		APE.transfer(manager,totalGamma);
 	}

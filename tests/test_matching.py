@@ -16,11 +16,12 @@ def test_single_bayc_match(matcher, ape, bayc, nft_guy, coin_guy, ape_staking, s
 	bayc.mint(nft_guy, 10)
 	ape.approve(matcher, 2 ** 256 - 1, {'from':coin_guy})
 	ape.mint(coin_guy, '110000 ether')
+	pre = ape.balanceOf(ape_staking)
 
 	matcher.depositNfts([10], [], [], {'from':nft_guy})
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
 	assert ape.balanceOf(matcher) == 0
-	assert ape.balanceOf(ape_staking) == BAYC_CAP
+	assert ape.balanceOf(ape_staking) - pre == BAYC_CAP
 	assert bayc.ownerOf(10) == smooth
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 10, nft_guy, coin_guy, NULL, NULL)
@@ -29,11 +30,12 @@ def test_single_bayc_match(matcher, ape, bayc, nft_guy, coin_guy, ape_staking, s
 def test_single_mayc_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, smooth, chain):
 	mayc.setApprovalForAll(matcher, True, {'from':nft_guy})
 	mayc.mint(nft_guy, 10)
+	pre = ape.balanceOf(ape_staking)
 
 	matcher.depositNfts([], [5], [], {'from':nft_guy})
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
 	assert ape.balanceOf(matcher) == 0
-	assert ape.balanceOf(ape_staking) == MAYC_CAP + BAYC_CAP
+	assert ape.balanceOf(ape_staking) - pre == MAYC_CAP
 	assert mayc.ownerOf(5) == smooth
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 5, nft_guy, coin_guy, NULL, NULL)
@@ -43,11 +45,12 @@ def test_single_mayc_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, s
 def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
 	bakc.setApprovalForAll(matcher, True, {'from':nft_guy})
 	bakc.mint(nft_guy, 10)
+	pre = ape.balanceOf(ape_staking)
 
 	matcher.depositNfts([], [], [5], {'from':nft_guy})
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
 	assert ape.balanceOf(matcher) == 0
-	assert ape.balanceOf(ape_staking) == BAKC_CAP + MAYC_CAP + BAYC_CAP
+	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP
 	assert bakc.ownerOf(5) == smooth
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2,(5 << 48) + 5, nft_guy, coin_guy, nft_guy, coin_guy)
@@ -56,7 +59,7 @@ def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, sm
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
 	assert matcher.gammaDepositCounter() == 2
 	assert ape.balanceOf(matcher) == 0
-	assert ape.balanceOf(ape_staking) == BAKC_CAP + BAKC_CAP + MAYC_CAP + BAYC_CAP
+	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP + BAKC_CAP
 	assert bakc.ownerOf(6) == smooth
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1,(6 << 48) + 10, nft_guy, coin_guy, nft_guy, coin_guy)

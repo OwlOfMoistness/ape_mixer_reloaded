@@ -1,0 +1,157 @@
+import pytest
+import brownie
+import web3
+from brownie.test import given, strategy
+from brownie import Wei, reverts
+import csv
+import math
+
+NULL = "0x0000000000000000000000000000000000000000"
+BAYC_CAP = 10094000000000000000000
+MAYC_CAP = 2042000000000000000000
+BAKC_CAP = 856000000000000000000
+BAYC_Q1 = 1678726800 - 1670864400
+MAYC_Q1 = 1678726800 - 1670864400
+BAKC_Q1 = 1678726800 - 1670864400
+BAYC_DAILY_RATE = 16486750000000000000000000 // (MAYC_Q1 // 86400)
+MAYC_DAILY_RATE = 6671000000000000000000000 // (MAYC_Q1 // 86400)
+BAKC_DAILY_RATE = 1342250000000000000000000 // (BAKC_Q1 // 86400)
+
+def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy, chain):
+	ape.mint(coin_guy, '1000000 ether')
+	ape.approve(matcher, 2 ** 256 - 1, {'from':coin_guy})
+	bayc.mint(nft_guy, 10)
+	bayc.setApprovalForAll(matcher, True, {'from':nft_guy})
+	matcher.depositNfts([1], [], [], {'from':nft_guy})
+	matcher.depositApeToken([1,0,0], {'from':coin_guy})
+	to_sleep = 0 if chain.time() > 1670864400 else 1670864400 - chain.time()
+	chain.sleep(to_sleep)
+	chain.mine()
+	chain.sleep(86400)
+	chain.mine()
+	pre_nft = ape.balanceOf(nft_guy)
+	matcher.batchClaimRewardsFromMatches([0], False, {'from':nft_guy})
+	assert math.isclose(matcher.payments(nft_guy), BAYC_DAILY_RATE // 2 * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy), BAYC_DAILY_RATE // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(matcher), BAYC_DAILY_RATE)
+	chain.sleep(86400)
+	chain.mine()
+	pre_coin = ape.balanceOf(coin_guy)
+	matcher.batchClaimRewardsFromMatches([0], True, {'from':coin_guy})
+	assert math.isclose(matcher.payments(nft_guy), BAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy), 0)
+	assert math.isclose(ape.balanceOf(coin_guy) - pre_coin, BAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(ape.balanceOf(matcher) - matcher.fee(), BAYC_DAILY_RATE * 96 // 100 )
+
+def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_guy, coin_guy,chain):
+	pre_match = ape.balanceOf(matcher)
+	ape.mint(other_guy, '1000000 ether')
+	ape.approve(matcher, 2 ** 256 - 1, {'from':other_guy})
+	mayc.mint(dog_guy, 10)
+	mayc.setApprovalForAll(matcher, True, {'from':dog_guy})
+	matcher.depositNfts([], [1], [], {'from':dog_guy})
+	matcher.depositApeToken([0,1,0], {'from':other_guy})
+	chain.sleep(86400)
+	chain.mine()
+	pre_nft = ape.balanceOf(dog_guy)
+	with reverts('!match'):
+		matcher.batchClaimRewardsFromMatches([0], False, {'from':dog_guy})
+	matcher.batchClaimRewardsFromMatches([1], False, {'from':dog_guy})
+	assert math.isclose(matcher.payments(dog_guy), MAYC_DAILY_RATE // 2 * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy), MAYC_DAILY_RATE // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(matcher) - pre_match, MAYC_DAILY_RATE)
+	chain.sleep(86400)
+	chain.mine()
+	pre_coin = ape.balanceOf(other_guy)
+	matcher.batchClaimRewardsFromMatches([1], True, {'from':other_guy})
+	assert math.isclose(matcher.payments(dog_guy), MAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy), 0)
+	assert math.isclose(ape.balanceOf(other_guy) - pre_coin, MAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(ape.balanceOf(matcher) - pre_match , MAYC_DAILY_RATE * 104 // 100)
+
+	assert ape.balanceOf(matcher) - matcher.fee() == matcher.payments(dog_guy) + matcher.payments(other_guy) + matcher.payments(nft_guy) + matcher.payments(coin_guy)
+
+def test_claiming_bakc_all_unique(matcher, ape, bakc, smooth, mix_guy, dog_guy, other_guy, some_guy,chain, ape_staking):
+# pendingRewards
+	ape.mint(some_guy, '1000000 ether')
+	ape.approve(matcher, 2 ** 256 - 1, {'from':some_guy})
+	bakc.mint(mix_guy, 10)
+	bakc.setApprovalForAll(matcher, True, {'from':mix_guy})
+	with reverts('!match'):
+		matcher.batchClaimRewardsFromMatches([0], False, {'from':some_guy})
+	matcher.depositNfts([], [], [1], {'from':mix_guy})
+	matcher.depositApeToken([0,0,1], {'from':some_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (1 << 48) +  1, dog_guy, other_guy, mix_guy, some_guy)
+	chain.sleep(86400)
+	chain.mine()
+	
+	bakc_rewards = ape_staking.pendingRewards(3, matcher, 1)
+	pre_match = ape.balanceOf(matcher)
+	dog_payment = matcher.payments(dog_guy)
+	other_payment = matcher.payments(other_guy)
+	matcher.batchClaimRewardsFromMatches([1], False, {'from':some_guy})
+	assert math.isclose(ape.balanceOf(matcher) - pre_match, bakc_rewards)
+	assert math.isclose(matcher.payments(mix_guy), bakc_rewards * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy), bakc_rewards * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(dog_guy) - dog_payment, bakc_rewards * 1 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy) - other_payment, bakc_rewards * 1 // 10 * 96 // 100)
+	chain.sleep(86400)
+	chain.mine()
+	matcher.batchClaimRewardsFromMatches([1], True, {'from':mix_guy})
+	assert matcher.payments(mix_guy)== 0
+	assert math.isclose(ape.balanceOf(mix_guy), 2 * bakc_rewards * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy), 2 * bakc_rewards * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(dog_guy) - dog_payment, bakc_rewards * 2 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy) - other_payment, bakc_rewards * 2 // 10 * 96 // 100)
+
+	pre_dog = ape.balanceOf(dog_guy)
+	pre_other = ape.balanceOf(other_guy)
+	mayc_rewards = ape_staking.pendingRewards(2, matcher, 1)
+	matcher.batchClaimRewardsFromMatches([1], True, {'from':dog_guy})
+	assert matcher.payments(dog_guy)== 0
+	assert math.isclose(ape.balanceOf(dog_guy) - pre_dog, dog_payment + bakc_rewards * 2 // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
+	matcher.batchClaimRewardsFromMatches([1], True, {'from':other_guy})
+	assert matcher.payments(other_guy)== 0
+	assert math.isclose(ape.balanceOf(other_guy) - pre_other, other_payment + bakc_rewards * 2 // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
+	assert matcher.payments(mix_guy)== 0
+
+def test_claiming_no_fee_primary_bayc(matcher, ape, bayc, ape_staking, nft_guy, dog_guy, coin_guy, chain):
+	matcher.batchClaimRewardsFromMatches([], True, {'from':nft_guy})
+	ape.mint(nft_guy, '1000000 ether')
+	ape.approve(matcher, 2 ** 256 - 1, {'from':nft_guy})
+	matcher.depositNfts([2], [], [], {'from':nft_guy})
+	matcher.depositApeToken([1,0,0], {'from':nft_guy})
+	chain.sleep(86400)
+	chain.mine()
+	bayc_rewards = ape_staking.pendingRewards(1, matcher, 2)
+	with reverts('!match'):
+		matcher.batchClaimRewardsFromMatches([2], True, {'from':coin_guy})
+	matcher.batchClaimRewardsFromMatches([2], False, {'from':nft_guy})
+	assert math.isclose(matcher.payments(nft_guy), bayc_rewards)
+	chain.sleep(86400)
+	chain.mine()
+	pre = ape.balanceOf(nft_guy)
+	matcher.batchClaimRewardsFromMatches([2], True, {'from':nft_guy})
+	assert math.isclose(ape.balanceOf(nft_guy) - pre, bayc_rewards * 2)
+
+def test_claiming_no_fee_primary_mayc(matcher, ape, mayc, ape_staking, nft_guy, dog_guy, coin_guy, chain):
+	matcher.batchClaimRewardsFromMatches([], True, {'from':nft_guy})
+	ape.mint(nft_guy, '1000000 ether')
+	ape.approve(matcher, 2 ** 256 - 1, {'from':nft_guy})
+	mayc.mint(nft_guy, 10)
+	mayc.setApprovalForAll(matcher, True, {'from':nft_guy})
+	matcher.depositNfts([], [12], [], {'from':nft_guy})
+	matcher.depositApeToken([0,1,0], {'from':nft_guy})
+	chain.sleep(86400)
+	chain.mine()
+	mayc_rewards = ape_staking.pendingRewards(2, matcher, 12)
+	with reverts('!match'):
+		matcher.batchClaimRewardsFromMatches([3], True, {'from':coin_guy})
+	matcher.batchClaimRewardsFromMatches([3], False, {'from':nft_guy})
+	assert math.isclose(matcher.payments(nft_guy), mayc_rewards)
+	chain.sleep(86400)
+	chain.mine()
+	pre = ape.balanceOf(nft_guy)
+	matcher.batchClaimRewardsFromMatches([3], True, {'from':nft_guy})
+	assert math.isclose(ape.balanceOf(nft_guy) - pre, mayc_rewards * 2)
