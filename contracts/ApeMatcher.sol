@@ -10,7 +10,7 @@ import "../interfaces/IApeStaking.sol";
 
 contract ApeMatcher is Pausable, IApeMatcher {
 
-	uint256 constant public MIN_STAKING_PERIOD = 15 days;
+	uint256 constant public MIN_STAKING_PERIOD = 7 days;
 	uint256 constant public FEE = 40; // 4%
 	uint256 constant public DENOMINATOR = 1000;
 
@@ -43,9 +43,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	uint256 public alphaDepositCounter;
 	uint256 public betaDepositCounter;
 	uint256 public gammaDepositCounter;
-
-	// TODO consider using same mapping feature for nfts to enable restaking if user configs in such way
-	// NOTE how => spentocunter decreases and nft is sent at beginning of line, skipping everyone
 
 	uint256 public alphaCurrentTotalDeposits;
 	uint256 public betaCurrentTotalDeposits;
@@ -655,6 +652,8 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			IApeStaking.Position memory pos = APE_STAKING.nftPosition(poolId, _tokenIds[i]);
 			require (pos.stakedAmount == 0, "ApeMatcher: NFT already commited");
 			require(_nft.ownerOf(_tokenIds[i]) == _user, "ApeMatcher: !owner");
+			if (_nft == GAMMA && _tokenIds[i] == 0)
+				revert("EmperorTomatoKetchup, you can't use your #0");
 			assetToUser[address(_nft)][_tokenIds[i]] = _user;
 			_nft.transferFrom(_user, address(this), _tokenIds[i]);
 		}

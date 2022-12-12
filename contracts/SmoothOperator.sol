@@ -73,7 +73,9 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		else
 			APE_STAKING.withdrawMAYC(tokens, address(this));
 		primary.transferFrom(address(this), _receiver, _out);
-		totalPrimary = APE.balanceOf(address(this)) - totalGamma - (primary == ALPHA ? ALPHA_SHARE : BETA_SHARE);
+		totalPrimary = APE.balanceOf(address(this))
+					- totalGamma - (primary == ALPHA ? ALPHA_SHARE : BETA_SHARE)
+					- (_gammaId > 0 ? GAMMA_SHARE : 0);
 		// send rewards of both dog and primary parties
 		APE.transfer(manager, totalPrimary + totalGamma);
 		tokens[0].tokenId = uint32(_in);
@@ -215,7 +217,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			APE_STAKING.withdrawBAKC(
 				primary == ALPHA ? pair : nullPair,
 				primary == ALPHA ? nullPair : pair);
-			GAMMA.transferFrom(address(this), _caller == _match.doggoOwner ?  _match.doggoOwner : manager, gammaId);
+			GAMMA.transferFrom(address(this), _caller == _match.doggoOwner ? _match.doggoOwner : manager, gammaId);
 			APE.transfer(_match.doggoTokensOwner == _caller ? _match.doggoTokensOwner : manager, GAMMA_SHARE);
 			if (_match.doggoTokensOwner != _caller)
 				IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _match.doggoTokensOwner);

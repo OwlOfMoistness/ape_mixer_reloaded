@@ -75,13 +75,15 @@ def ape_staking(ApeCoinStaking, admin, bayc, mayc, bakc, ape):
 	return staking
 
 @pytest.fixture(scope="module")
-def matcher(ApeMatcher, admin, bayc, mayc, bakc, ape, ape_staking):
-	return ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
+def matcher(ApeMatcher, SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking):
+	ma =  ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
+	ope =  SmoothOperator.deploy(ma, bayc, mayc, bakc, ape, ape_staking,{'from':admin})
+	ma.setOperator(ope, {'from':admin})
+	return ma
 
 
 @pytest.fixture(scope="module")
 def smooth(SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, matcher):
-	ope =  SmoothOperator.deploy(matcher, bayc, mayc, bakc, ape, ape_staking,{'from':admin})
-	matcher.setOperator(ope, {'from':admin})
+	ope = SmoothOperator.at(matcher.smoothOperator())
 	return ope
 

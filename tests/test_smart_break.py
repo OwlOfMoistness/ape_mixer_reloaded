@@ -80,6 +80,7 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 1, nft_guy, other_guy, NULL, NULL)
 	assert mayc.ownerOf(11) == dog_guy
+	assert ape.balanceOf(smooth) == 0
 
 def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, some_guy, accounts):
 	bakc.mint(dog_guy, 10)
@@ -114,6 +115,7 @@ def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 1, nft_guy, other_guy, some_guy, dog_guy)
 	assert ape.balanceOf(coin_guy) == pre + BAKC_CAP
 	assert matcher.doglessMatchCounter() == 1
+	assert ape.balanceOf(smooth) == 0
 
 def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, some_guy, accounts):
 	assert matcher.doglessMatchCounter() == 1
@@ -138,3 +140,26 @@ def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 1, nft_guy, other_guy, some_guy, dog_guy)
 	assert ape.balanceOf(coin_guy) == pre + BAKC_CAP
+	assert ape.balanceOf(smooth) == 0
+
+def test_break_filled_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, mix_guy, some_guy, accounts):
+	bayc.mint(mix_guy, 10)
+	bayc.setApprovalForAll(matcher, True, {'from':mix_guy})
+	assert bayc.balanceOf(matcher) == 0
+	matcher.depositNfts([21], [], [], {'from':mix_guy})
+	matcher.batchSmartBreakMatch([0], [False], {'from':nft_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
+	assert bayc.ownerOf(1) == nft_guy
+	assert ape.balanceOf(smooth) == 0
+
+def test_break_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, mix_guy, some_guy, accounts):
+	mayc.mint(mix_guy, 10)
+	mayc.setApprovalForAll(matcher, True, {'from':mix_guy})
+	assert mayc.balanceOf(matcher) == 0
+	matcher.depositNfts([], [21], [], {'from':mix_guy})
+	matcher.batchSmartBreakMatch([1], [False], {'from':nft_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
+	assert mayc.ownerOf(1) == nft_guy
+	assert ape.balanceOf(smooth) == 0
