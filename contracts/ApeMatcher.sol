@@ -31,6 +31,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	uint256 constant GAMMA_SHARE = 856 ether; // dog
 
 	uint256 public fee;
+	uint256 weights;
 	mapping(address => mapping(uint256 => address)) public assetToUser;
 
 	uint256 public matchCounter;
@@ -71,6 +72,17 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function setOperator(address _operator) external onlyOwner {
 		require(address(smoothOperator) == address(0));
 		smoothOperator = ISmoothOperator(_operator);
+	}
+
+	function updateWeights(uint32[4] calldata _primaryWeights, uint32[4] calldata _dogWeights) external onlyOwner {
+		require(_primaryWeights[0] + _primaryWeights[1] + _primaryWeights[2] + _primaryWeights[3] == 1000);
+		require(_primaryWeights[2] + _primaryWeights[3] == 0);
+		require(_dogWeights[0] + _dogWeights[1] + _dogWeights[2] + _dogWeights[3] == 1000);
+
+		uint256 val;
+		for(uint256 i = 0; i < 4 ; i++)
+			val |= (uint256(_primaryWeights[i]) << (32 * (7 - i))) + (uint256(_dogWeights[i]) << (32 * (3 - i)));
+		weights = val;
 	}
 
 	function fetchApe() external onlyOwner {
@@ -373,7 +385,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		for (; index < 4; index++)
 			if (_user == _adds[index])
 				break;
-		uint128[4] memory splits = _smartSplit(uint128(_total), _adds, _claimGamma);
+		uint128[4] memory splits = _smartSplit(uint128(_total), _adds, _claimGamma, weights);
 		for (uint256 i = 0 ; i < 4; i++)
 			if (splits[i] > 0) {
 				// If you own both primary nft and deposit token, no fee charged
@@ -387,9 +399,9 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			}
 	}
 
-	function _smartSplit(uint128 _total, address[4] memory _adds, bool _claimGamma) internal pure returns(uint128[4] memory splits) {
+	function _smartSplit(uint128 _total, address[4] memory _adds, bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory splits) {
 		uint256 i = 0;
-		splits = _getWeights(_claimGamma);
+		splits = _getWeights(_claimGamma, _weight);
 		uint128 sum  = 0;
 		for (i = 0 ; i < 4 ; i++)
 			sum += splits[i];
@@ -659,43 +671,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		return _a > _b ? _b : _a;
 	}
 
-	function _getWeights(bool _claimGamma) internal pure returns(uint128[4] memory weights) {
-		// TODO check if we fetch price feed from bend dao and have a dynamic weight or do static
-		// NOTE historically looks like nfts are 2x more valuable than token req
-		if (_claimGamma) {
-			weights[0] = 100;  // 10%
-			weights[1] = 100;  // 10%
-			weights[2] = 400; // 40%
-			weights[3] = 400; // 40%
-		}
-		else {
-			weights[0] = 500;  // 50%
-			weights[1] = 500;  // 50%
-			weights[2] = 0;
-			weights[3] = 0;
-		}
+	function _getWeights(bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory _weights) {
+		uint256 dogMask = (2 << 128) - 1;
+		uint256 _uint32Mask = (2 << 32) - 1;
+		if (_claimGamma)
+			_weight &= dogMask;
+		else
+			_weight >>= 128;
+		_weights[0] = uint128((_weight >> (32 * 3)) & _uint32Mask);
+		_weights[1] = uint128((_weight >> (32 * 2)) & _uint32Mask);
+		_weights[2] = uint128((_weight >> (32 * 1)) & _uint32Mask);
+		_weights[3] = uint128((_weight >> (32 * 0)) & _uint32Mask);
 	}
-
-	// for testing, will remove later
-	function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint k = len;
-        while (_i != 0) {
-            k = k-1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
-    }
 }

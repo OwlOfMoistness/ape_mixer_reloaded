@@ -79,6 +79,7 @@ def matcher(ApeMatcher, SmoothOperator, admin, bayc, mayc, bakc, ape, ape_stakin
 	ma =  ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 	ope =  SmoothOperator.deploy(ma, bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 	ma.setOperator(ope, {'from':admin})
+	ma.updateWeights([500,500,0,0],[100,100,400,400], {'from':admin})
 	chain.sleep(86400)
 	chain.mine()
 	return ma
