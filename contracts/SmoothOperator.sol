@@ -52,7 +52,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		uint256 _in,
 		uint256 _out,
 		address _receiver,
-		uint256 _gammaId) external onlyManager returns(uint256 totalGamma, uint256 totalPrimary) {
+		uint256 _gammaId) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		IApeStaking.SingleNft[] memory tokens = new IApeStaking.SingleNft[](1);
 		IApeStaking.PairNftWithdrawWithAmount[] memory nullPair = new IApeStaking.PairNftWithdrawWithAmount[](0);
