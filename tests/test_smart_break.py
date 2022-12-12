@@ -34,8 +34,7 @@ def assert_expected_payment_dog(matcher, p1, p2, p3, p4, rewards, s):
 def assert_expected_payment(matcher, p1, p2, rewards, s):
 	assert math.isclose(matcher.payments(p1) - s[0], rewards // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(p2) - s[1], rewards // 2 * 96 // 100)
-17392.615384615384615241
-181173.076923076923075426
+
 def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy, other_guy, chain, ape_staking):
 	ape.mint(coin_guy, '1000000 ether')
 	ape.mint(other_guy, '1000000 ether')

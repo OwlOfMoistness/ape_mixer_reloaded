@@ -17,6 +17,30 @@ BAYC_DAILY_RATE = 16486750000000000000000000 // (MAYC_Q1 // 86400)
 MAYC_DAILY_RATE = 6671000000000000000000000 // (MAYC_Q1 // 86400)
 BAKC_DAILY_RATE = 1342250000000000000000000 // (BAKC_Q1 // 86400)
 
+def get_payment_snapshot(matcher, p1, p2, p3, p4, ):
+	return [
+		matcher.payments(p1),
+		matcher.payments(p2),
+		matcher.payments(p3),
+		matcher.payments(p4)
+	]
+
+def assert_expected_payment_both(matcher, p1, p2, p3, p4, reward_p, rewards_d, s):
+	assert math.isclose(matcher.payments(p1) - s[0], (reward_p // 2 + rewards_d * 1 // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(p2) - s[1], (reward_p // 2 + rewards_d * 1 // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(p3) - s[2], rewards_d * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(p4) - s[3], rewards_d * 4 // 10 * 96 // 100)
+
+def assert_expected_payment_dog(matcher, p1, p2, p3, p4, rewards, s):
+	assert math.isclose(matcher.payments(p1) - s[0], rewards * 1 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(p2) - s[1], rewards * 1 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(p3) - s[2], rewards * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(p4) - s[3], rewards * 4 // 10 * 96 // 100)
+
+def assert_expected_payment(matcher, p1, p2, rewards, s):
+	assert math.isclose(matcher.payments(p1) - s[0], rewards // 2 * 96 // 100)
+	assert math.isclose(matcher.payments(p2) - s[1], rewards // 2 * 96 // 100)
+
 def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy, chain):
 	ape.mint(coin_guy, '1000000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':coin_guy})
@@ -71,7 +95,7 @@ def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_
 
 	assert ape.balanceOf(matcher) - matcher.fee() == matcher.payments(dog_guy) + matcher.payments(other_guy) + matcher.payments(nft_guy) + matcher.payments(coin_guy)
 
-def test_claiming_bakc_all_unique(matcher, ape, bakc, smooth, mix_guy, dog_guy, other_guy, some_guy,chain, ape_staking):
+def test_claiming_bakc_all_unique(matcher, ape, bakc, smooth, mix_guy, dog_guy, other_guy, some_guy, chain, ape_staking):
 # pendingRewards
 	ape.mint(some_guy, '1000000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':some_guy})
@@ -155,3 +179,87 @@ def test_claiming_no_fee_primary_mayc(matcher, ape, mayc, ape_staking, nft_guy, 
 	pre = ape.balanceOf(nft_guy)
 	matcher.batchClaimRewardsFromMatches([3], True, {'from':nft_guy})
 	assert math.isclose(ape.balanceOf(nft_guy) - pre, mayc_rewards * 2)
+
+def test_claim_user_in_both_pairs_bayc_nft_side(matcher, smooth, ape, bayc, bakc, ape_staking, nft_guy, some_guy, coin_guy, chain):
+	bakc.mint(nft_guy, 10)
+	bakc.setApprovalForAll(matcher, True, {'from':nft_guy})
+	matcher.depositNfts([3], [], [12], {'from':nft_guy})
+	matcher.depositApeToken([1,0,0], {'from':coin_guy})
+	matcher.depositApeToken([0,0,1], {'from':some_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(4)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (12 << 48) +  3, nft_guy, coin_guy, nft_guy, some_guy)
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(1, smooth, 3)
+	reward_d = ape_staking.pendingRewards(3, smooth, 12)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([4], False, {'from':nft_guy})
+	assert math.isclose(matcher.payments(nft_guy) - snap[0], (reward // 2 + 5 * reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy) - snap[1], (reward // 2 + reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy) - snap[3], (4 * reward_d // 10) * 96 // 100)
+
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(1, smooth, 3)
+	reward_d = ape_staking.pendingRewards(3, smooth, 12)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([4], False, {'from':coin_guy})
+	assert_expected_payment(matcher, nft_guy, coin_guy, reward, snap)
+	assert ape_staking.pendingRewards(3, smooth, 12) > 0
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(1, smooth, 3)
+	reward_d = ape_staking.pendingRewards(3, smooth, 12)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([4], False, {'from':some_guy})
+	assert math.isclose(matcher.payments(nft_guy) - snap[0], (5 * reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy) - snap[1], (reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy) - snap[3], (4 * reward_d // 10) * 96 // 100)
+
+def test_claim_user_in_both_pairs_mayc_nft_side(matcher, smooth, ape, mayc, bakc, ape_staking, nft_guy, some_guy, coin_guy, chain):
+	bakc.mint(nft_guy, 10)
+	bakc.setApprovalForAll(matcher, True, {'from':nft_guy})
+	matcher.depositNfts([], [13], [13], {'from':nft_guy})
+	matcher.depositApeToken([0,1,0], {'from':coin_guy})
+	matcher.depositApeToken([0,0,1], {'from':some_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(5)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) +  13, nft_guy, coin_guy, nft_guy, some_guy)
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(2, smooth, 13)
+	reward_d = ape_staking.pendingRewards(3, smooth, 13)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([5], False, {'from':nft_guy})
+	assert math.isclose(matcher.payments(nft_guy) - snap[0], (reward // 2 + 5 * reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy) - snap[1], (reward // 2 + reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy) - snap[3], (4 * reward_d // 10) * 96 // 100)
+
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(2, smooth, 13)
+	reward_d = ape_staking.pendingRewards(3, smooth, 13)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([5], False, {'from':coin_guy})
+	assert_expected_payment(matcher, nft_guy, coin_guy, reward, snap)
+	assert ape_staking.pendingRewards(3, smooth, 12) > 0
+	chain.sleep(86400)
+	chain.mine()
+	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, nft_guy, some_guy)
+	reward = ape_staking.pendingRewards(2, smooth, 13)
+	reward_d = ape_staking.pendingRewards(3, smooth, 13)
+	assert reward > 0
+	assert reward_d > 0
+	matcher.batchClaimRewardsFromMatches([5], False, {'from':some_guy})
+	assert math.isclose(matcher.payments(nft_guy) - snap[0], (5 * reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy) - snap[1], (reward_d // 10) * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy) - snap[3], (4 * reward_d // 10) * 96 // 100)
