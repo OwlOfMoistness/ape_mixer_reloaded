@@ -448,10 +448,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				uint8(1),
 				uint32(block.timestamp),
 				uint96((gammaId << 48) + id),
-				assetToUser[address(ALPHA)][id], // should we delete asset to user for gas saving?
-				primaryPos.depositor, // should we delete asset to user for gas saving?
-				gammaMatch ? assetToUser[address(GAMMA)][gammaId] : address(0), // should we delete asset to user for gas saving?
-				gammaMatch ? gammaPos.depositor : address(0) // should we delete asset to user for gas saving?
+				assetToUser[address(ALPHA)][id],
+				primaryPos.depositor,
+				gammaMatch ? assetToUser[address(GAMMA)][gammaId] : address(0),
+				gammaMatch ? gammaPos.depositor : address(0)
 			);
 			primaryPos.count--;
 			if (gammaMatch)
@@ -508,10 +508,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				uint8(2),
 				uint32(block.timestamp),
 				uint96((gammaId << 48) + id),
-				assetToUser[address(BETA)][id], // should we delete asset to user for gas saving?
-				primaryPos.depositor, // should we delete asset to user for gas saving?
-				gammaMatch ? assetToUser[address(GAMMA)][gammaId] : address(0), // should we delete asset to user for gas saving?
-				gammaMatch ? gammaPos.depositor: address(0) // should we delete asset to user for gas saving?
+				assetToUser[address(BETA)][id],
+				primaryPos.depositor,
+				gammaMatch ? assetToUser[address(GAMMA)][gammaId] : address(0),
+				gammaMatch ? gammaPos.depositor: address(0)
 			);
 			primaryPos.count--;
 			if (gammaMatch)
@@ -593,7 +593,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 
 	function _handleDeposit(uint256 _type, uint32 _amount, address _user) internal {
 		if (_type == ALPHA_SHARE) {
-			// emit DepositPositionCreated(_user, alphaDepositCounter, ALPHA_SHARE, _amount);
 			depositPosition[ALPHA_SHARE][alphaDepositCounter++] = DepositPosition(_amount, _user);
 			alphaCurrentTotalDeposits += _amount;
 		}
