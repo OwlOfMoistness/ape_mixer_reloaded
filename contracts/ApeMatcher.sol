@@ -69,11 +69,22 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		_;
 	}
 
+	/**  
+	 * @notice
+	 * Set the contract to handle NFTs and Ape coins. Can be called only once. Owner gated
+	 * @param _operator contract address of the operator
+	 */
 	function setOperator(address _operator) external onlyOwner {
 		require(address(smoothOperator) == address(0));
 		smoothOperator = ISmoothOperator(_operator);
 	}
 
+	/**  
+	 * @notice
+	 * Updates the weights that dictates how rewards are split. Owner gated
+	 * @param _primaryWeights Array containing the weights for primary splits
+	  * @param _dogWeights Array containing the weights for secondary splits
+	 */
 	function updateWeights(uint32[4] calldata _primaryWeights, uint32[4] calldata _dogWeights) external onlyOwner {
 		require(_primaryWeights[0] + _primaryWeights[1] + _primaryWeights[2] + _primaryWeights[3] == 1000);
 		require(_primaryWeights[2] + _primaryWeights[3] == 0);
@@ -85,12 +96,23 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		weights = val;
 	}
 
+	/**  
+	 * @notice
+	 * Allows owner to fetch ape coin fees. Owner gated
+	 */
 	function fetchApe() external onlyOwner {
 		uint256 amount = fee;
 		fee = 0;
 		APE.transfer(owner(), amount);
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to deposit NFTs into the contract
+	 * @param _alphaIds Array of BAYC nfts to deposit
+	 * @param _betaIds Array of MAYC nfts to deposit
+	 * @param _gammaIds Array of BAKC nfts to deposit
+	 */
 	function depositNfts(
 		uint256[] calldata _alphaIds,
 		uint256[] calldata _betaIds,
@@ -108,6 +130,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		_bindDoggoToMatchId();
 	}
 
+	/**  
+	 * @notice
+	 * Allows the operator to deposit the tokens of a user. Used when a match is broken
+	 * @param _depositAmounts Array of amounts of deposits of each tranche to deposit
+	 * @param _user User to deposit to
+	 */
 	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external override onlyOperator {
 		uint256 totalDeposit = 0;
 		uint256[3] memory depositValues = [ALPHA_SHARE, BETA_SHARE, GAMMA_SHARE];
@@ -123,6 +151,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		_bindDoggoToMatchId();
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to deposit ape coins into the contract
+	 * @param _depositAmounts Array of amounts of deposits of each tranche to deposit
+	 */
 	function depositApeToken(uint32[3] calldata _depositAmounts) external notPaused {
 		uint256 totalDeposit = 0;
 		uint256[3] memory depositValues = [ALPHA_SHARE, BETA_SHARE, GAMMA_SHARE];
@@ -140,6 +173,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user withdraw their NFTs that aren't matched
+	 * @param _alphaIds Array of BAYC nfts to withdraw
+	 * @param _betaIds Array of MAYC nfts to withdraw
+	 * @param _gammaIds Array of BAKC nfts to withdraw
+	 */
 	function withdrawNfts(
 		uint256[] calldata _alphaIds,
 		uint256[] calldata _betaIds,
@@ -152,27 +192,50 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_withdrawNfts(BETA, _betaIds, msg.sender);
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user withdraw their ape coin deposits that haven't been consumed
+	 * @param _depositIndexAlpha Array of deposit IDs of the BAYC tranche
+	 * @param _depositIndexBeta Array of deposit IDs of the MAYC tranche
+	 * @param _depositIndexGamma Array of deposit IDs of the BAKC tranche
+	 */
 	function withdrawApeToken(
 		uint256[] calldata _depositIndexAlpha,
 		uint256[] calldata _depositIndexBeta,
 		uint256[] calldata _depositIndexGamma) external {
 		uint256 amountToReturn = 0;
 		for (uint256 i = 0 ; i < _depositIndexAlpha.length; i++) {
+			if (i < _depositIndexAlpha.length - 1)
+				require(_depositIndexAlpha[i] > _depositIndexAlpha[i + 1]);
 			amountToReturn += _verifyAndReturnDepositValue(0, _depositIndexAlpha[i], msg.sender);
 		}
 		for (uint256 i = 0 ; i < _depositIndexBeta.length; i++) {
+			if (i < _depositIndexBeta.length - 1)
+				require(_depositIndexAlpha[i] > _depositIndexAlpha[i + 1]);
 			amountToReturn += _verifyAndReturnDepositValue(1, _depositIndexBeta[i], msg.sender);
 		}
 		for (uint256 i = 0 ; i < _depositIndexGamma.length; i++) {
+			if (i < _depositIndexGamma.length - 1)
+				require(_depositIndexAlpha[i] > _depositIndexAlpha[i + 1]);
 			amountToReturn += _verifyAndReturnDepositValue(2, _depositIndexGamma[i], msg.sender);
 		}
 		APE.transfer(msg.sender, amountToReturn);
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to claim any outstanding amount of rewards
+	 */
 	function claimTokens() external {
 		_claimTokens(msg.sender);
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to claim rewards from an array of matches they are involved with
+	 * @param _matchIds Array of match IDs a user is involved with 
+	 * @param _claim Boolean to set if the users withdraws rewards now or not
+	 */
 	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, bool _claim) external {
 		uint256 _fee;
 		for(uint256 i = 0 ; i < _matchIds.length; i++)
@@ -183,6 +246,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_claimTokens(msg.sender);
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to break matches they are involved with to recuperate their asset(s)
+	 * @param _matchIds Array of match IDs a user is involved with 
+	 * @param _breakAll Array of booleans indicating to break the whole match or just the dog agreement
+	 */
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		uint256 _fee;
 		for (uint256 i = 0; i < _matchIds.length; i++) 
@@ -191,6 +260,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			fee += _fee;
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to break matches they are involved with to recuperate their asset(s).
+	 * Only dogs and dog toke deposits can be removed
+	 * @param _matchIds Array of match IDs a user is involved with 
+	 */
 	function batchBreakDogMatch(uint256[] calldata _matchIds) external {
 		uint256 _fee;
 		for (uint256 i = 0; i < _matchIds.length; i++)
@@ -199,6 +274,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			fee += _fee;
 	}
 
+	/**  
+	 * @notice
+	 * Allows a user to swap their asset in a match with another one that currently exists in the contract
+	 * @param _matchIds Array of match IDs a user is involved with 
+	 * @param _swapDogs Array of boolean indicating if the user wants to only swap their dog if they are involved in both primary and dog agreements
+	 */
 	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[] calldata _swapDogs) external {
 		uint256 _fee;
 		for (uint256 i = 0; i < _matchIds.length; i++)
@@ -209,6 +290,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 
 	// INTERNAL
 
+	/**  
+	 * @notice
+	 * Internal function that claims tokens for a user
+	 * @param _user User to send rewards to
+	 */
 	function _claimTokens(address _user) internal {
 		uint256 rewards = payments[_user];
 		if (rewards > 0) {
@@ -217,6 +303,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**  
+	 * @notice
+	 * Interncl function that claims tokens from a match
+	 * @param _matchId Match ID to claim from
+	 */
 	function _claimRewardsFromMatch(uint256 _matchId) internal returns(uint256 _fee) {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
@@ -243,6 +334,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that claims tokens from a match
+	 * @param _matchId Match ID to claim from
+	 * @param _swapDog Match ID to claim from
+	 */
 	function _smartBreakMatch(uint256 _matchId, bool _swapDog) internal returns(uint256 _fee) {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
@@ -266,6 +363,15 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_fee += _processRewards(totalGamma, adds, msg.sender, true);
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that handles swapping an asset of a match with another in the contract
+	 * @param _index Index of the user in the agreement array
+	 * @param _ids Ids of primary asset and dog 
+	 * @param _primary Contract address of the primary asset
+	 * @param _matchId Match ID to execurte the swap
+	 * @param _user User to swap out
+	 */
 	function _smartSwap(
 		uint256 _index,
 		uint256 _ids,
@@ -342,6 +448,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that breaks a match
+	 * @param _matchId Match ID to break
+	 * @param _breakAll Boolean indicating if we break the whole match or just the dogs
+	 */
 	function _breakMatch(uint256 _matchId, bool _breakAll) internal returns(uint256 _fee){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
@@ -370,6 +482,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that breaks the dog agreement in a match
+	 * @param _matchId Match ID to break
+	 */
 	function _breakDogMatch(uint256 _matchId) internal returns(uint256){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
@@ -380,6 +497,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		return _processRewards(totalGamma, adds, msg.sender, true);
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that handles the payment from a match to the users involved
+	 * @param _total Amount of tokens to distribute to users
+	 * @param _adds Array of users involved
+	 * @param _user Initial caller of the execution
+	 * @param _claimGamma Boolean indicating if the reward came from a primary of dog claim
+	 */
 	function _processRewards(uint256 _total, address[4] memory _adds, address _user, bool _claimGamma) internal returns(uint256 _fee){
 		uint256 index = 0;
 		for (; index < 4; index++)
@@ -399,6 +524,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			}
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that handles the payment split of a given reward
+	 * @param _total Amount of tokens to distribute to users
+	 * @param _adds Array of users involved
+	 * @param _claimGamma Boolean indicating if the reward came from a primary of dog claim
+	 * @param _weight Value holding the split ratios of primary and dog claims
+	 */
 	function _smartSplit(uint128 _total, address[4] memory _adds, bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory splits) {
 		uint256 i = 0;
 		splits = _getWeights(_claimGamma, _weight);
@@ -418,6 +551,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			}
 	}
 
+	/**  
+	 * @notice
+	 * Internal function that handles the pairing of BAYC assets with tokens if they exist
+	 */
 	function _mixAndMatchAlpha() internal {
 		uint256 count = ALPHA.balanceOf(address(this));
 		uint256 deposits = alphaCurrentTotalDeposits;
@@ -478,6 +615,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
 	}
 
+	/**
+	 * @notice
+	 * Internal function that handles the pairing of MAYC assets with tokens if they exist
+	 */
 	function _mixAndMatchBeta() internal {
 		uint256 count = BETA.balanceOf(address(this));
 		uint256 deposits = betaCurrentTotalDeposits;
@@ -538,6 +679,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
 	}
 
+	/**
+	 * @notice
+	 * Internal function that handles the pairing of DOG assets with tokens if they exist to an existing dogless match
+	 */
 	function _bindDoggoToMatchId() internal {
 		uint256 depositsGamma = gammaCurrentTotalDeposits;
 		uint256 toBind = _min(doglessMatchCounter, _min(GAMMA.balanceOf(address(this)), depositsGamma));
@@ -571,6 +716,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
 	}
 
+	/**
+	 * @notice
+	 * Internal function that handles unbinding a dog from a match
+	 * @param _matchId Match ID to remove the dog from
+	 * @param _caller Initial caller of this execution
+	 */
 	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller) internal returns(uint256 totalGamma) {
 		GreatMatch storage _match = matches[_matchId];
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
@@ -591,6 +742,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		_match.ids = uint96(ids & 0xffffffffffff);
 	}
 
+	/**
+	 * @notice
+	 * Internal function that handles deposits for a user
+	 * @param _type Deposit type (bayc/mayc/bakc)
+	 * @param _amount Amount of deposits
+	 * @param _user User to whom attribute the deposits
+	 */
 	function _handleDeposit(uint256 _type, uint32 _amount, address _user) internal {
 		if (_type == ALPHA_SHARE) {
 			depositPosition[ALPHA_SHARE][alphaDepositCounter++] = DepositPosition(_amount, _user);
@@ -606,6 +764,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**
+	 * @notice
+	 * Internal function that handles deposits for a user
+	 * @param _type Deposit type (bayc/mayc/bakc)
+	 * @param _index Amount of deposits
+	 * @param _user User to whom attribute the deposits
+	 */
 	function _verifyAndReturnDepositValue(uint256 _type, uint256 _index, address _user) internal returns (uint256){
 		uint256 count;
 		if (_type == 0) {
@@ -645,6 +810,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			revert("ApeMatcher: Outside keys");
 	}
 
+	/**
+	 * @notice
+	 * Internal function that deposits NFTs for a user
+	 * @param _nft Contract address of the nft
+	 * @param _tokenIds Array of token IDs
+	 * @param _user User to whom attribute the NFTs
+	 */
 	function _depositNfts(IERC721Enumerable _nft, uint256[] calldata _tokenIds, address _user) internal {
 		uint256 poolId = _nft == ALPHA ? 1 : (_nft == BETA ? 2 : 3);
 		for(uint256 i = 0; i < _tokenIds.length; i++) {
@@ -658,6 +830,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		}
 	}
 
+	/**
+	 * @notice
+	 * Internal function that withdraws NFTs for a user
+	 * @param _nft Contract address of the nft
+	 * @param _tokenIds Array of token IDs
+	 * @param _user User to whom withdraw the NFTs
+	 */
 	function _withdrawNfts(IERC721Enumerable _nft, uint256[] calldata _tokenIds, address _user) internal {
 			for (uint256 i = 0; i < _tokenIds.length; i++) {
 			require(assetToUser[address(_nft)][_tokenIds[i]] == _user, "ApeMatcher: !owner");
@@ -670,6 +849,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		return _a > _b ? _b : _a;
 	}
 
+	/**
+	 * @notice
+	 * Internal function that fetches the split ratio of a given claim (primary or dog)
+	 * @param _claimGamma Boolean that indicates if this is a dog claim or not
+	 * @param _weight Value holding the split ratios
+	 */
 	function _getWeights(bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory _weights) {
 		uint256 dogMask = (2 << 128) - 1;
 		uint256 _uint32Mask = (2 << 32) - 1;

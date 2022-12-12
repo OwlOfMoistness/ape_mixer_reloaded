@@ -47,6 +47,15 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		_;
 	}
 
+	/**
+	 * @notice
+	 * Function that swaps a primary asset from a match
+	 * @param _primary Contract address of the primary asset
+	 * @param _in New asset ID to be swapped in
+	 * @param _out Asset ID to be swapped out
+	 * @param _receiver Address receiving the swapped out asset
+	 * @param _gammaId Dog ID to uncommit and recommit if it exists
+	 */
 	function swapPrimaryNft(
 		address _primary,
 		uint256 _in,
@@ -95,6 +104,15 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		}
 	}
 
+	/**
+	 * @notice
+	 * Function that swaps a dog asset from a match
+	 * @param _primary Contract address of the primary asset
+	 * @param _primaryId Primary asset ID to uncommit and recommit
+	 * @param _in New dog ID to be swapped in
+	 * @param _out DOG ID to be swapped out
+	 * @param _receiver Address receiving the swapped out asset
+	 */
 	function swapDoggoNft(
 		address _primary,
 		uint256 _primaryId,
@@ -125,6 +143,14 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE.transfer(manager,totalGamma);
 	}
 
+	/**
+	 * @notice
+	 * Function that claims the rewards of a given match
+	 * @param _primary Contract address of the primary asset
+	 * @param _tokenId Primary asset ID to claim from
+	 * @param _gammaId Dog ID to claim from is _claimGamma is true
+	 * @param _claimGamma Indicates to claim Dog or not
+	 */
 	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, bool _claimGamma) public onlyManager returns(uint256) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		uint256[] memory tokens = new uint256[](1);
@@ -149,6 +175,13 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		return total;
 	}
 
+	/**
+	 * @notice
+	 * Function that commits a pair of assets in the staking contract
+	 * @param _primary Contract address of the primary asset
+	 * @param _tokenId Primary asset ID to commit
+	 * @param _gammaId Dog ID to commit if it exists
+	 */
 	function commitNFTs(address _primary, uint256 _tokenId, uint256 _gammaId) external onlyManager {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		IApeStaking.SingleNft[] memory tokens = new IApeStaking.SingleNft[](1);
@@ -168,6 +201,13 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				primary == ALPHA ? nullPair : pair);
 	}
 
+	/**
+	 * @notice
+	 * Function that binds a dog to a primary asset
+	 * @param _primary Contract address of the primary asset
+	 * @param _tokenId Primary asset ID
+	 * @param _gammaId Dog ID to bind
+	 */
 	function bindDoggoToExistingPrimary(address _primary, uint256 _tokenId, uint256 _gammaId) external onlyManager {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		IApeStaking.PairNftDepositWithAmount[] memory nullPair = new IApeStaking.PairNftDepositWithAmount[](0);
@@ -179,6 +219,16 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			primary == ALPHA ? nullPair : pair);
 	}
 
+	/**
+	 * @notice
+	 * Function that unbinds a dog from a primary asset
+	 * @param _primary Contract address of the primary asset
+	 * @param _tokenId Primary asset ID
+	 * @param _gammaId Dog ID to unbind
+	 * @param _receiver Owner of dog
+	 * @param _tokenOwner Owner of token deposit
+	 * @param _caller Address that initiated the execution
+	 */
 	function unbindDoggoFromExistingPrimary(
 		address _primary,
 		uint256 _tokenId,
@@ -202,6 +252,12 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE.transfer(manager, totalGamma);
 	}
 
+	/**
+	 * @notice
+	 * Function that uncommits all assets from a match
+	 * @param _match Contract address of the primary asset
+	 * @param _caller Address that initiated the execution
+	 */
 	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma) {
 		IERC721Enumerable primary = _match.primary == 1 ? ALPHA : BETA;
 		uint256 tokenId = uint256(_match.ids & (2**48 - 1));
@@ -237,13 +293,16 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		APE.transfer(manager, totalPrimary + totalGamma);
 	}
 
-	// As scary as this look, this function can't steal assets.
-	// It cannot access NFT contract outside of designated code above.
-	// All contracts that needed approval have received approval in the constructor.
-	// Only the staking contract and the manager contract can move assets around.
-	// A rogue contract call could not transfer nfts or tokens out of this contract.
-	// The existence of this function is purely to claim any rewards from snapshots taken during the time nfts are chilling here.
-	// Blame Dingaling for the addition of this 
+	/**
+	 * @notice
+	 * As scary as this look, this function can't steal assets.
+	 * It cannot access NFT contract outside of designated code above.
+	 * All contracts that needed approval have received approval in the constructor.
+	 * Only the staking contract and the manager contract can move assets around.
+	 * A rogue contract call could not transfer nfts or tokens out of this contract.
+	 * The existence of this function is purely to claim any rewards from snapshots taken during the time nfts are chilling here.
+	 * Blame Dingaling for the addition of this 
+	 */
 	function exec(address _target, bytes calldata _data) external payable onlyOwner {
 		require(_target != address(ALPHA) &&
 				_target != address(BETA) &&
