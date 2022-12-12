@@ -152,6 +152,20 @@ def test_break_filled_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
 	assert bayc.ownerOf(1) == nft_guy
 	assert ape.balanceOf(smooth) == 0
+	with reverts('ApeMatcher: !alpha deposits'):
+		matcher.batchSmartBreakMatch([0], [False], {'from':other_guy})
+	d =  matcher.alphaDepositCounter()
+	pre = ape.balanceOf(other_guy)
+	matcher.depositApeToken([2,0,0], {'from':coin_guy})
+	matcher.batchSmartBreakMatch([0], [False], {'from':other_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 21, mix_guy, coin_guy, some_guy, dog_guy)
+	assert matcher.alphaCurrentTotalDeposits() == 1
+	assert matcher.alphaDepositCounter() - d == 1
+	assert  matcher.alphaSpentCounter() == d
+	assert matcher.depositPosition(BAYC_CAP, d) == (1, coin_guy)
+	assert ape.balanceOf(other_guy) - pre == BAYC_CAP
+
 
 def test_break_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, mix_guy, some_guy, accounts):
 	mayc.mint(mix_guy, 10)
@@ -163,3 +177,17 @@ def test_break_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
 	assert mayc.ownerOf(1) == nft_guy
 	assert ape.balanceOf(smooth) == 0
+
+	with reverts('ApeMatcher: !beta deposits'):
+		matcher.batchSmartBreakMatch([1], [False], {'from':other_guy})
+	d =  matcher.betaDepositCounter()
+	pre = ape.balanceOf(other_guy)
+	matcher.depositApeToken([0,2,0], {'from':coin_guy})
+	matcher.batchSmartBreakMatch([1], [False], {'from':other_guy})
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 21, mix_guy, coin_guy, some_guy, dog_guy)
+	assert matcher.betaCurrentTotalDeposits() == 1
+	assert matcher.betaDepositCounter() - d == 1
+	assert  matcher.betaSpentCounter() == d
+	assert matcher.depositPosition(MAYC_CAP, d) == (1, coin_guy)
+	assert ape.balanceOf(other_guy) - pre == MAYC_CAP

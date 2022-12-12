@@ -26,6 +26,8 @@ def test_single_bayc_match(matcher, ape, bayc, nft_guy, coin_guy, ape_staking, s
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 10, nft_guy, coin_guy, NULL, NULL)
 	assert matcher.alphaSpentCounter() == 1
+	with reverts('ApeMatcher: deposit consumed'):
+		matcher.withdrawApeToken([0] ,[], [], {'from':coin_guy})
 
 def test_single_mayc_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, smooth, chain):
 	mayc.setApprovalForAll(matcher, True, {'from':nft_guy})
@@ -41,6 +43,9 @@ def test_single_mayc_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, s
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 5, nft_guy, coin_guy, NULL, NULL)
 	assert matcher.doglessMatchCounter() == 2
 	assert matcher.betaSpentCounter() == 1
+	with reverts('ApeMatcher: deposit consumed'):
+		matcher.withdrawApeToken([] ,[0], [], {'from':coin_guy})
+
 
 def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, smooth, chain):
 	bakc.setApprovalForAll(matcher, True, {'from':nft_guy})
@@ -65,6 +70,8 @@ def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, sm
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1,(6 << 48) + 10, nft_guy, coin_guy, nft_guy, coin_guy)
 	assert matcher.doglessMatchCounter() == 0
 	assert matcher.gammaSpentCounter() == 2
+	with reverts('ApeMatcher: deposit consumed'):
+		matcher.withdrawApeToken([] ,[], [0], {'from':coin_guy})
 
 def test_many_bayc_match(matcher, ape, bayc, nft_guy, coin_guy, ape_staking, smooth, chain):
 	pre = ape.balanceOf(ape_staking)

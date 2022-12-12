@@ -43,7 +43,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 	}
 
 	modifier onlyManager() {
-		require(msg.sender == manager);
+		require(msg.sender == manager, "Smooth: Can't toucht this");
 		_;
 	}
 

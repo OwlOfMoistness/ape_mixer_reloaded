@@ -121,7 +121,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			// TODO emit event somehow
 		}
 		if (totalDeposit > 0) {
-			require(APE.transferFrom(msg.sender, address(this), totalDeposit), "ApeMatcher: APE token transfer reverted");
+			APE.transferFrom(msg.sender, address(this), totalDeposit);
 			_mixAndMatchAlpha();
 			_mixAndMatchBeta();
 			_bindDoggoToMatchId();
@@ -391,31 +391,19 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 i = 0;
 		splits = _getWeights(_claimGamma);
 		uint128 sum  = 0;
-		// make sum and remove weight if address is null
 		for (i = 0 ; i < 4 ; i++)
 			sum += splits[i];
 		// update splits
 		for (i = 0 ; i < 4 ; i++)
 			splits[i] =  _total * splits[i] / sum;
 
-		// if dog owner or dog token deposit owner is primary owner, bring together (saves gas for sstore and transfers)
-		if (_adds[0] == _adds[2]) {
-			splits[0] += splits[2];
-			splits[2] = 0;
-		}
-		if (_adds[0] == _adds[3]) {
-			splits[0] += splits[3];
-			splits[3] = 0;
-		}
-		// if dog owner or dog token deposit owner is primary token deposit owner, bing together (saves gas for sstore and transfers)
-		if (_adds[1] == _adds[2]) {
-			splits[1] += splits[2];
-			splits[2] = 0;
-		}
-		if (_adds[1] == _adds[3]) {
-			splits[1] += splits[3];
-			splits[3] = 0;
-		}
+		for (i = 0 ; i < 3 ; i++)
+			for (uint256 j = i + 1 ; j < 4 ; j++) {
+				if (_adds[i] == _adds[j] && splits[j] > 0) {
+					splits[i] += splits[j];
+					splits[j] = 0;
+				}
+			}
 	}
 
 	function _mixAndMatchAlpha() internal {
