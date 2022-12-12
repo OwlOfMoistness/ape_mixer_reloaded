@@ -94,10 +94,11 @@ def test_break_dog_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy
 	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, dog_guy, coin_guy)
 	reward = ape_staking.pendingRewards(3, smooth, 3)
 	assert reward > 0
+	matcher.batchBreakDogMatch([1], {'from':coin_guy})
 	assert math.isclose(matcher.payments(nft_guy) - snap[0], reward * 1 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy) - snap[1], reward * 1 // 10 * 96 // 100 + reward * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(dog_guy) - snap[2], reward * 4 // 10 * 96 // 100)
-	matcher.batchBreakDogMatch([1], {'from':coin_guy})
+
 	assert matcher.doglessMatchCounter() == 1
 	assert bakc.ownerOf(3) == matcher
 	assert ape.balanceOf(coin_guy) == pre_ape - MAYC_CAP
