@@ -31,7 +31,5 @@ You can exit an agreement before the specific period of time if the asset you ar
 
 ## <ins>What's the reward distribution?</ins>
 
-Data currently collected around this. Based on USD valuation, NFT is 2x the value of the apecoin couterpart. 1 BAYC ~= 2 * 10094 apecoins
-Taking this data, it would make sense to offer a 2:1 ratio for reward distribution. On the other hand, "It takes 2 to tango" which has been said by a few people. 1:1 split seems also desirable.
-Furthermore, if a dog is attached to an agreement, the primary nft/token users received an extra 10%/5% respectively (TBD)
-Current management fee of 4% (bend dao has such %) is added when users claim their rewards. No fees on initial deposits.
+Daily apy pulls will be performed to check the APY of each pool. It is only beneficial for an ape coin holder to stake coins on an nft pool if they earn more than on Pool #0. The meaning share for the ape coin holder should be `Pool #0 APY / Pool #X APY`.
+Example: If Pool #0 apy = 100% and Pool #1 APY = 250%, then the minimum split `100 /250 = 40%` for the token holder. As the APYs are closer to each other, the higher the share to the token holder.

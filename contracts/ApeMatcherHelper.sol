@@ -85,6 +85,9 @@ contract ApeMatcherHelper {
 		uint256 j;
 		uint256 counter = MATCHER.matchCounter();
 
+		if (_index > counter)
+			return new IApeMatcherHelper.GreatMatch[](0);
+
 		// if endIndex (_index + _maxLen) overflows, set endIndex to counter
 		uint256 endIndex = _index + _maxLen;
 		if (counter < endIndex)

@@ -274,12 +274,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @notice
 	 * Allows a user to swap their asset in a match with another one that currently exists in the contract
 	 * @param _matchIds Array of match IDs a user is involved with 
-	 * @param _swapDogs Array of boolean indicating if the user wants to only swap their dog if they are involved in both primary and dog agreements
+	 * @param _swapSetup Array of boolean indicating what the user wants swap in the match
 	 */
-	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[] calldata _swapDogs) external {
+	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external {
 		uint256 _fee;
 		for (uint256 i = 0; i < _matchIds.length; i++)
-			_fee += _smartBreakMatch(_matchIds[i], _swapDogs[i]);
+			_fee += _smartBreakMatch(_matchIds[i], _swapSetup[i]);
 		_handleFee(_fee);
 	}
 
@@ -326,25 +326,20 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @notice
 	 * Internal function that claims tokens from a match
 	 * @param _matchId Match ID to claim from
-	 * @param _swapDog Match ID to claim from
+	 * @param _swapSetup Boolean array indicating what the user wants swap in the match
 	 */
-	function _smartBreakMatch(uint256 _matchId, bool _swapDog) internal returns(uint256 _fee) {
+	function _smartBreakMatch(uint256 _matchId, bool[4] memory _swapSetup) internal returns(uint256 _fee) {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
 				msg.sender == adds[2] || msg.sender == adds[3], "!match");
 		
-		uint256 index = 0;
-		for (; index < 4; index++)
-			if (msg.sender == adds[index])
-				break;
-		if ((msg.sender == adds[0] || msg.sender == adds[1]) &&
-			(msg.sender == adds[2] || msg.sender == adds[3]) && _swapDog)
-			index += 2;
+		for (uint256 i; i < 4; i++)
+			_swapSetup[i] = _swapSetup[i] && msg.sender == adds[i];
 		uint256 ids = _match.ids;
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
-		(uint256 totalPrimary, uint256 totalGamma) = _smartSwap(index, ids, primary, _matchId, msg.sender);
+		(uint256 totalPrimary, uint256 totalGamma) = _smartSwap(_swapSetup, ids, primary, _matchId, msg.sender);
 		if (totalPrimary > 0)
 			_fee += _processRewards(totalPrimary, adds, msg.sender, false);
 		if (totalGamma > 0)
@@ -354,20 +349,20 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	/**  
 	 * @notice
 	 * Internal function that handles swapping an asset of a match with another in the contract
-	 * @param _index Index of the user in the agreement array
+	 * @param _swapSetup Boolean array indicating what the user wants swap in the match
 	 * @param _ids Ids of primary asset and dog 
 	 * @param _primary Contract address of the primary asset
 	 * @param _matchId Match ID to execurte the swap
 	 * @param _user User to swap out
 	 */
 	function _smartSwap(
-		uint256 _index,
+		bool[4] memory _swapSetup,
 		uint256 _ids,
 		address _primary,
 		uint256 _matchId,
 		address _user) internal returns (uint256 totalPrimary, uint256 totalGamma) {
 		// swap primary nft out
-		if (_index == 0) {
+		if (_swapSetup[0]) {
 			require(IERC721Enumerable(_primary).balanceOf(address(this)) > 0, "ApeMatcher: !primary asset");
 			uint256 id = IERC721Enumerable(_primary).tokenOfOwnerByIndex(address(this), 0);
 			uint256 oldId = _ids & 0xffffffffffff;
@@ -378,7 +373,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			(totalPrimary, totalGamma) = smoothOperator.swapPrimaryNft(_primary, id, oldId, _user, _ids >> 48);
 		}
 		// swap token depositor, since tokens are fungible, no movement required, simply consume a deposit and return share to initial depositor
-		else if (_index == 1) {
+		if (_swapSetup[1]) {
 			if (_primary == address(ALPHA)) {
 				require(alphaCurrentTotalDeposits > 0, "ApeMatcher: !alpha deposits");
 				DepositPosition storage pos = depositPosition[ALPHA_SHARE][alphaSpentCounter]; 
@@ -403,7 +398,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			(totalPrimary,) = smoothOperator.claim(_primary, _ids & 0xffffffffffff, _ids >> 48, 1);
 		}
 		// swap doggo out
-		else if (_index == 2) {
+		if (_swapSetup[2]) {
 			require(GAMMA.balanceOf(address(this)) > 0, "ApeMatcher: !dog asset");
 			uint256 id = GAMMA.tokenOfOwnerByIndex(address(this), 0);
 			uint256 oldId = _ids >> 48;
@@ -414,7 +409,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			totalGamma = smoothOperator.swapDoggoNft(_primary, _ids & 0xffffffffffff,  id, oldId, _user);
 		}
 		// swap token depositor, since tokens are fungible, no movement required, simply consume a deposit and return share to initial depositor
-		else if (_index == 3) {
+		if (_swapSetup[3]) {
 			require(gammaCurrentTotalDeposits > 0, "ApeMatcher: !dog deposit");
 			DepositPosition storage pos = depositPosition[GAMMA_SHARE][gammaSpentCounter];
 			matches[_matchId].doggoTokensOwner = pos.depositor; // swap gamma token owner
@@ -484,10 +479,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _claimGamma Boolean indicating if the reward came from a primary of dog claim
 	 */
 	function _processRewards(uint256 _total, address[4] memory _adds, address _user, bool _claimGamma) internal returns(uint256 _fee){
-		uint256 index = 0;
-		for (; index < 4; index++)
-			if (_user == _adds[index])
-				break;
 		uint128[4] memory splits = _smartSplit(uint128(_total), _adds, _claimGamma, weights);
 		for (uint256 i = 0 ; i < 4; i++)
 			if (splits[i] > 0) {

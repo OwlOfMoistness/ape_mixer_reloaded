@@ -120,11 +120,9 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		uint256 _out,
 		address _receiver) external onlyManager returns(uint256 totalGamma) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
-		IApeStaking.SingleNft[] memory tokens = new IApeStaking.SingleNft[](1);
 		IApeStaking.PairNftWithdrawWithAmount[] memory nullPair = new IApeStaking.PairNftWithdrawWithAmount[](0);
 		IApeStaking.PairNftWithdrawWithAmount[] memory pair = new IApeStaking.PairNftWithdrawWithAmount[](1);
 
-		tokens[0] = IApeStaking.SingleNft(uint32(_out), uint224(primary == ALPHA ? ALPHA_SHARE : BETA_SHARE));
 		pair[0] = IApeStaking.PairNftWithdrawWithAmount(uint32(_primaryId), uint32(_out), uint184(GAMMA_SHARE), true);
 		// unstake and unbind dog from primary
 		APE_STAKING.withdrawBAKC(
@@ -306,7 +304,8 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		require(_target != address(ALPHA) &&
 				_target != address(BETA) &&
 				_target != address(GAMMA) &&
-				_target != address(APE), "Cannot call any assets handled by this contract");
+				_target != address(APE) &&
+				_target != address(APE_STAKING), "Cannot call any assets handled by this contract");
 		(bool success,) = _target.call{value:msg.value}(_data);
 		require(success);
 	}
