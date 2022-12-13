@@ -149,30 +149,29 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 	 * @param _primary Contract address of the primary asset
 	 * @param _tokenId Primary asset ID to claim from
 	 * @param _gammaId Dog ID to claim from is _claimGamma is true
-	 * @param _claimGamma Indicates to claim Dog or not
+	 * @param _claimSetup Indicates to claim Dog or primary pr both
 	 */
-	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, bool _claimGamma) public onlyManager returns(uint256) {
+	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, uint256 _claimSetup) public onlyManager returns(uint256 total, uint256 totalGamma) {
 		IERC721Enumerable primary = IERC721Enumerable(_primary);
 		uint256[] memory tokens = new uint256[](1);
 		IApeStaking.PairNft[] memory pair = new IApeStaking.PairNft[](1);
 		IApeStaking.PairNft[] memory nullPair = new IApeStaking.PairNft[](0);
 		tokens[0] = _tokenId;
 		pair[0] = IApeStaking.PairNft(uint128(_tokenId), uint128(_gammaId));
-		if (_claimGamma) {
-			if (_gammaId > 0)
-				APE_STAKING.claimBAKC(
-					primary == ALPHA ? pair : nullPair,
-					primary == ALPHA ? nullPair : pair, address(this));
+		if (_claimSetup == 0 || _claimSetup == 2) {
+			APE_STAKING.claimBAKC(
+				primary == ALPHA ? pair : nullPair,
+				primary == ALPHA ? nullPair : pair, address(this));
+			totalGamma = APE.balanceOf(address(this));
 		}
-		else {
+		if (_claimSetup == 1 || _claimSetup == 2){
 			if (primary == ALPHA)
 				APE_STAKING.claimBAYC(tokens, address(this));
 			else
 				APE_STAKING.claimMAYC(tokens, address(this));
+			total = APE.balanceOf(address(this)) - totalGamma;
 		}
-		uint256 total = APE.balanceOf(address(this));
-		APE.transfer(manager, total);
-		return total;
+		APE.transfer(manager, total + totalGamma);
 	}
 
 	/**

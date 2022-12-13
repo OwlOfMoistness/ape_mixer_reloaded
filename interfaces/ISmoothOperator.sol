@@ -7,7 +7,7 @@ interface ISmoothOperator {
 
 	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external returns(uint256, uint256);
 
-	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, bool _claimGamma) external returns(uint256);
+	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, uint256 _claimSetup) external returns(uint256 total, uint256 totalGamma);
 
 	function swapPrimaryNft(
 		address _primary,
