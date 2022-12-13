@@ -30,4 +30,6 @@ interface IApeMatcherHelper {
 	function matches(uint256) external view returns(GreatMatch memory);
 	function matchCounter() external view returns(uint256);
 
+	function doglessMatchCounter() external view returns(uint256);
+	function doglessMatches(uint256) external view returns(uint256);
 }

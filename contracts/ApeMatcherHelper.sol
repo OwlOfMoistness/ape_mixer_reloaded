@@ -9,16 +9,33 @@ import "../interfaces/IApeMatcherHelper.sol";
 
 
 contract ApeMatcherHelper {
-	IApeStaking public immutable APE_STAKING = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
-	IERC721Enumerable public immutable ALPHA = IERC721Enumerable(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
-	IERC721Enumerable public immutable BETA = IERC721Enumerable(0x60E4d786628Fea6478F785A6d7e704777c86a7c6);
-	IERC721Enumerable public immutable GAMMA = IERC721Enumerable(0xba30E5F9Bb24caa003E9f2f0497Ad287FDF95623);
-	IERC20 public immutable APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
-	IApeMatcherHelper public immutable MATCHER = IApeMatcherHelper(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
+
+	struct RewardInfo {
+		uint128 primaryRewards;
+		uint128 gammaRewards;
+	}
+
+	IApeStaking public immutable APE_STAKING;
+	IERC721Enumerable public immutable ALPHA;
+	IERC721Enumerable public immutable BETA;
+	IERC721Enumerable public immutable GAMMA;
+	IERC20 public immutable APE;
+	IApeMatcherHelper public immutable MATCHER;
+	address public immutable SMOOTH;
 
 	uint256 constant ALPHA_SHARE = 10094 ether; //bayc
 	uint256 constant BETA_SHARE = 2042 ether; // mayc
 	uint256 constant GAMMA_SHARE = 856 ether; // dog
+
+	constructor(address a, address b, address c, address d, address e, address f, address g) {
+		APE_STAKING = IApeStaking(a);
+		ALPHA = IERC721Enumerable(b);
+		BETA = IERC721Enumerable(c);
+		GAMMA = IERC721Enumerable(d);
+		APE = IERC20(e);
+		MATCHER = IApeMatcherHelper(f);
+		SMOOTH = address(g);
+	}
 
 	function getUserQueuedNftsIDs(address _user, IERC721Enumerable _nft, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory tokenIds) {
 		tokenIds = new uint256[](_maxLen);
@@ -80,8 +97,8 @@ contract ApeMatcherHelper {
 		}
 	}
 
-	function getUserMatches(address _user, uint256 _index, uint256 _maxLen) external view returns(IApeMatcherHelper.GreatMatch[] memory matches) {
-		matches = new IApeMatcherHelper.GreatMatch[](_maxLen);
+	function getUserMatches(address _user, uint256 _index, uint256 _maxLen) external view returns(IApeMatcherHelper.GreatMatch[] memory) {
+		IApeMatcherHelper.GreatMatch[] memory matches = new IApeMatcherHelper.GreatMatch[](_maxLen);
 		uint256 j;
 		uint256 counter = MATCHER.matchCounter();
 
@@ -101,5 +118,36 @@ contract ApeMatcherHelper {
 				_user == _match.doggoTokensOwner)
 				matches[j++] = _match;
 		}
+		return matches;
+	}
+
+	function getDoglessArray(uint256 _index, uint256 _maxLen) external view returns(uint256[] memory) {
+		uint256[] memory arr = new uint256[](_maxLen);
+		uint256 j;
+		uint256 counter = MATCHER.doglessMatchCounter();
+
+		if (_index > counter)
+			return new uint256[](0);
+		
+		uint256 endIndex = _index + _maxLen;
+		if (counter < endIndex)
+			endIndex = counter;
+		for(uint256 i = _index; i < endIndex; i++) {
+			arr[j++] = MATCHER.doglessMatches(i);
+		}
+		return arr;
+	}
+
+	function getPendingRewardsOfMatches(uint256[] calldata _matchIds) external view returns(RewardInfo[] memory){
+		RewardInfo[] memory arr = new RewardInfo[](_matchIds.length);
+		for (uint256 i = 0; i < _matchIds.length; i++) {
+			IApeMatcherHelper.GreatMatch memory _match = MATCHER.matches(_matchIds[i]);
+			uint256 tP = APE_STAKING.pendingRewards(_match.primary, SMOOTH, _match.ids & 0xffffffffffff);
+			uint256 tG;
+			if (_match.ids >> 48 > 0)
+				tG = APE_STAKING.pendingRewards(3, SMOOTH, _match.ids >> 48);
+			arr[i] = RewardInfo(uint128(tP), uint128(tG));
+		}
+		return arr;
 	}
 }

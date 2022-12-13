@@ -97,4 +97,6 @@ interface IApeStaking {
 	function withdrawBAYC(SingleNft[] calldata _nfts, address _recipient) external;
 	function withdrawMAYC(SingleNft[] calldata _nfts, address _recipient) external;
 	function withdrawBAKC(PairNftWithdrawWithAmount[] calldata _baycPairs, PairNftWithdrawWithAmount[] calldata _maycPairs) external;
+
+    function pendingRewards(uint256 _poolId, address _address, uint256 _tokenId) external view returns (uint256);
 }
