@@ -20,16 +20,23 @@ contract ApeMatcherHelper {
 	uint256 constant BETA_SHARE = 2042 ether; // mayc
 	uint256 constant GAMMA_SHARE = 856 ether; // dog
 
-	function getUserQueuedNftsIDs(address _user, IERC721Enumerable _nft, uint256 _index) external view returns(uint256[] memory tokenIds) {
-		tokenIds = new uint256[](200);
+	function getUserQueuedNftsIDs(address _user, IERC721Enumerable _nft, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory tokenIds) {
+		tokenIds = new uint256[](_maxLen);
 		uint256 j;
 		uint256 balance = _nft.balanceOf(address(MATCHER));
-		uint256 len = balance - _index;
-		if (len > 200)
-			len = 200 + _index;
-		else
-			len = balance;
-		for(uint256 i = _index; i < balance; i++) {
+
+		// if _index is higher than balance at time of call, return empty array instead of revert
+		if (balance < _index) {
+			return new uint256[](0);
+		}
+
+		// if endIndex (_index + _maxLen) overflows, set endIndex to balance
+		uint256 endIndex = _index + _maxLen;
+		if (balance < endIndex)
+			endIndex = balance;
+
+		// from index to endIndex, check if asset is owner's and populate tokenIds array
+		for(uint256 i = _index; i < endIndex; i++) {
 			uint256 tokenId = _nft.tokenOfOwnerByIndex(address(MATCHER), i);
 			address owner = MATCHER.assetToUser(address(_nft), tokenId);
 			if (_user == owner)
@@ -37,8 +44,8 @@ contract ApeMatcherHelper {
 		}
 	}
 
-	function getUserQueuedCoinDepositsIDs(address _user, uint256 _type, uint256 _index) external view returns(uint256[] memory depositIds) {
-		depositIds = new uint256[](200);
+	function getUserQueuedCoinDepositsIDs(address _user, uint256 _type, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory depositIds) {
+		depositIds = new uint256[](_maxLen);
 		uint256 j;
 		uint256 start;
 		uint256 end;
@@ -55,29 +62,35 @@ contract ApeMatcherHelper {
 			start = MATCHER.gammaSpentCounter();
 			end = MATCHER.gammaDepositCounter();
 		}
-		uint256 len = end - start;
-		if (_index > start) {
-			len = end - _index;
-			start = _index;
+
+		// if start + _index is higher than end (max endIndex) at time of call, return empty array
+		if (start + _index > end) {
+			return new uint256[](0);
 		}
-		if (len > 200)
-			len = start + 200;
-		for(uint256 i = start; i < len; i++) {
+
+		// if endIndex (_index + _maxLen) overflows, set endIndex to end
+		uint256 endIndex = _index + _maxLen;
+		if (end < endIndex)
+			endIndex = end;
+
+		for(uint256 i = start + _index; i < endIndex; i++) {
 			IApeMatcherHelper.DepositPosition memory pos =  MATCHER.depositPosition(_type, i);
 			if (pos.depositor == _user)
 				depositIds[j++] = i;
 		}
 	}
 
-	function getUserMatches(address _user, uint256 _index) external view returns(IApeMatcherHelper.GreatMatch[] memory matches) {
-		matches = new IApeMatcherHelper.GreatMatch[](100);
+	function getUserMatches(address _user, uint256 _index, uint256 _maxLen) external view returns(IApeMatcherHelper.GreatMatch[] memory matches) {
+		matches = new IApeMatcherHelper.GreatMatch[](_maxLen);
 		uint256 j;
 		uint256 counter = MATCHER.matchCounter();
-		uint256 len = counter - _index;
-		if (len > 100)
-			len = _index + 100;
 
-		for(uint256 i = _index; i < len; i++) {
+		// if endIndex (_index + _maxLen) overflows, set endIndex to counter
+		uint256 endIndex = _index + _maxLen;
+		if (counter < endIndex)
+			endIndex = counter;
+
+		for(uint256 i = _index; i < endIndex; i++) {
 			IApeMatcherHelper.GreatMatch memory _match = MATCHER.matches(i);
 			if (_user == _match.primaryOwner ||
 				_user == _match.primaryTokensOwner ||
