@@ -7,6 +7,11 @@ interface IApeMatcherHelper {
 		address depositor;
 	}
 
+	struct GreatMatchWithId {
+		uint256 id;
+		GreatMatch _match;
+	}
+
 	struct GreatMatch {
 		bool	active;	
 		uint8	primary;			// alpha:1/beta:2

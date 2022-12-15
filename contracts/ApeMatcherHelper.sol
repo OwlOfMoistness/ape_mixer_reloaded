@@ -26,6 +26,7 @@ contract ApeMatcherHelper {
 	uint256 constant ALPHA_SHARE = 10094 ether; //bayc
 	uint256 constant BETA_SHARE = 2042 ether; // mayc
 	uint256 constant GAMMA_SHARE = 856 ether; // dog
+	uint256 constant EOF = 69420;
 
 	constructor(address a, address b, address c, address d, address e, address f, address g) {
 		APE_STAKING = IApeStaking(a);
@@ -38,7 +39,7 @@ contract ApeMatcherHelper {
 	}
 
 	function getUserQueuedNftsIDs(address _user, IERC721Enumerable _nft, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory tokenIds) {
-		tokenIds = new uint256[](_maxLen);
+		tokenIds = new uint256[](_maxLen + 1);
 		uint256 j;
 		uint256 balance = _nft.balanceOf(address(MATCHER));
 
@@ -59,6 +60,7 @@ contract ApeMatcherHelper {
 			if (_user == owner)
 				tokenIds[j++] = tokenId;
 		}
+		tokenIds[j++] = EOF;
 	}
 
 	function getUserQueuedCoinDepositsIDs(address _user, uint256 _type, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory depositIds) {
@@ -97,13 +99,13 @@ contract ApeMatcherHelper {
 		}
 	}
 
-	function getUserMatches(address _user, uint256 _index, uint256 _maxLen) external view returns(IApeMatcherHelper.GreatMatch[] memory) {
-		IApeMatcherHelper.GreatMatch[] memory matches = new IApeMatcherHelper.GreatMatch[](_maxLen);
+	function getUserMatches(address _user, uint256 _index, uint256 _maxLen) external view returns(IApeMatcherHelper.GreatMatchWithId[] memory) {
+		IApeMatcherHelper.GreatMatchWithId[] memory matches = new IApeMatcherHelper.GreatMatchWithId[](_maxLen);
 		uint256 j;
 		uint256 counter = MATCHER.matchCounter();
 
 		if (_index > counter)
-			return new IApeMatcherHelper.GreatMatch[](0);
+			return new IApeMatcherHelper.GreatMatchWithId[](0);
 
 		// if endIndex (_index + _maxLen) overflows, set endIndex to counter
 		uint256 endIndex = _index + _maxLen;
@@ -116,7 +118,7 @@ contract ApeMatcherHelper {
 				_user == _match.primaryTokensOwner ||
 				_user == _match.doggoOwner ||
 				_user == _match.doggoTokensOwner)
-				matches[j++] = _match;
+				matches[j++] = IApeMatcherHelper.GreatMatchWithId(i, _match);
 		}
 		return matches;
 	}

@@ -26,7 +26,7 @@ A match is composed of up to 4 people:
 
 If you are part of 10 agreements, you can claim from those 10 agreements whenever you want.
 If your agreement lacks a dog, it may be attached in the future automatically as the pool of those assets gets replenished.
-An agreement can't be broken for a specific period of time (15 days for now).
+An agreement can't be broken for a specific period of time (7 days for now).
 You can exit an agreement before the specific period of time if the asset you are exiting can be replaced by another of similar properties.
 
 ## <ins>What's the reward distribution?</ins>
