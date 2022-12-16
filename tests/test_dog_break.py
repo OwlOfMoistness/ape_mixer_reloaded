@@ -67,7 +67,7 @@ def test_break_dog_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy
 	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 1, nft_guy, coin_guy, NULL, NULL)
 	pre = ape.balanceOf(coin_guy)
-	matcher.withdrawApeToken([], [], [1], {'from':coin_guy})
+	matcher.withdrawApeToken([], [], [(1, 1)], {'from':coin_guy})
 	assert ape.balanceOf(coin_guy) - pre == BAKC_CAP
 	matcher.depositApeToken([0, 0, 1], {'from':coin_guy})
 

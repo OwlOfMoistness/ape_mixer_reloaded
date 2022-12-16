@@ -199,24 +199,24 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _depositIndexGamma Array of deposit IDs of the BAKC tranche
 	 */
 	function withdrawApeToken(
-		uint256[] calldata _depositIndexAlpha,
-		uint256[] calldata _depositIndexBeta,
-		uint256[] calldata _depositIndexGamma) external {
+		DepositWithdrawals[] calldata _depositAlpha,
+		DepositWithdrawals[] calldata _depositBeta,
+		DepositWithdrawals[] calldata _depositGamma) external {
 		uint256 amountToReturn = 0;
-		for (uint256 i = 0 ; i < _depositIndexAlpha.length; i++) {
-			if (i < _depositIndexAlpha.length - 1)
-				require(_depositIndexAlpha[i] > _depositIndexAlpha[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(0, _depositIndexAlpha[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositAlpha.length; i++) {
+			if (i < _depositAlpha.length - 1)
+				require(_depositAlpha[i].depositId > _depositAlpha[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(0, _depositAlpha[i].depositId, _depositAlpha[i].amount, msg.sender);
 		}
-		for (uint256 i = 0 ; i < _depositIndexBeta.length; i++) {
-			if (i < _depositIndexBeta.length - 1)
-				require(_depositIndexBeta[i] > _depositIndexBeta[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(1, _depositIndexBeta[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositBeta.length; i++) {
+			if (i < _depositBeta.length - 1)
+				require(_depositBeta[i].depositId > _depositBeta[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(1, _depositBeta[i].depositId, _depositBeta[i].amount, msg.sender);
 		}
-		for (uint256 i = 0 ; i < _depositIndexGamma.length; i++) {
-			if (i < _depositIndexGamma.length - 1)
-				require(_depositIndexGamma[i] > _depositIndexGamma[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(2, _depositIndexGamma[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositGamma.length; i++) {
+			if (i < _depositGamma.length - 1)
+				require(_depositGamma[i].depositId > _depositGamma[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(2, _depositGamma[i].depositId, _depositGamma[i].amount, msg.sender);
 		}
 		APE.transfer(msg.sender, amountToReturn);
 	}
@@ -678,40 +678,59 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _index Amount of deposits
 	 * @param _user User to whom attribute the deposits
 	 */
-	function _verifyAndReturnDepositValue(uint256 _type, uint256 _index, address _user) internal returns (uint256){
+	function _verifyAndReturnDepositValue(
+		uint256 _type,
+		uint256 _index,
+		uint32 _amount,
+		address _user) internal returns (uint256){
 		uint256 count;
 		if (_type == 0) {
 			require(alphaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(alphaSpentCounter <= _index, "ApeMatcher: deposit consumed"); 
 			require(depositPosition[ALPHA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[ALPHA_SHARE][_index].count;
-			alphaCurrentTotalDeposits -= count;
-			depositPosition[ALPHA_SHARE][_index] = depositPosition[ALPHA_SHARE][alphaDepositCounter - 1];
-			delete depositPosition[ALPHA_SHARE][alphaDepositCounter-- - 1];
-			return ALPHA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			alphaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[ALPHA_SHARE][_index] = depositPosition[ALPHA_SHARE][alphaDepositCounter - 1];
+				delete depositPosition[ALPHA_SHARE][alphaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[ALPHA_SHARE][_index].count -= _amount;
+			return ALPHA_SHARE * _amount;
 		}
 		else if (_type == 1) {
 			require(betaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(betaSpentCounter <= _index, "ApeMatcher: deposit consumed");
 			require(depositPosition[BETA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[BETA_SHARE][_index].count;
-			betaCurrentTotalDeposits -= count;
-			depositPosition[BETA_SHARE][_index] = depositPosition[BETA_SHARE][betaDepositCounter - 1];
-			delete depositPosition[BETA_SHARE][betaDepositCounter-- - 1];
-			return BETA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			betaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[BETA_SHARE][_index] = depositPosition[BETA_SHARE][betaDepositCounter - 1];
+				delete depositPosition[BETA_SHARE][betaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[BETA_SHARE][_index].count -= _amount;
+			return BETA_SHARE * _amount;
 		}
 		else if (_type == 2) {
 			require(gammaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(gammaSpentCounter <= _index, "ApeMatcher: deposit consumed");
 			require(depositPosition[GAMMA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[GAMMA_SHARE][_index].count;
-			gammaCurrentTotalDeposits -= count;
-			depositPosition[GAMMA_SHARE][_index] = depositPosition[GAMMA_SHARE][gammaDepositCounter - 1];
-			delete depositPosition[GAMMA_SHARE][gammaDepositCounter-- - 1];
-			return GAMMA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			gammaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[GAMMA_SHARE][_index] = depositPosition[GAMMA_SHARE][gammaDepositCounter - 1];
+				delete depositPosition[GAMMA_SHARE][gammaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[GAMMA_SHARE][_index].count -= _amount;
+			return GAMMA_SHARE * _amount;
 		}
 	}
 

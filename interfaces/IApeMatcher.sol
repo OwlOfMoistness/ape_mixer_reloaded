@@ -17,5 +17,10 @@ interface IApeMatcher {
 		address depositor;
 	}
 
+	struct DepositWithdrawals {
+		uint128 depositId;
+		uint32 amount;
+	}
+
 	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external;
 }
