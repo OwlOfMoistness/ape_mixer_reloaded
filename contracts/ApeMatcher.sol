@@ -194,9 +194,9 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	/**  
 	 * @notice
 	 * Allows a user withdraw their ape coin deposits that haven't been consumed
-	 * @param _depositIndexAlpha Array of deposit IDs of the BAYC tranche
-	 * @param _depositIndexBeta Array of deposit IDs of the MAYC tranche
-	 * @param _depositIndexGamma Array of deposit IDs of the BAKC tranche
+	 * @param _depositAlpha Array of deposit IDs of the BAYC tranche
+	 * @param _depositGamma Array of deposit IDs of the MAYC tranche
+	 * @param _depositGamma Array of deposit IDs of the BAKC tranche
 	 */
 	function withdrawApeToken(
 		DepositWithdrawals[] calldata _depositAlpha,
@@ -675,7 +675,8 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @notice
 	 * Internal function that handles deposits for a user
 	 * @param _type Deposit type (bayc/mayc/bakc)
-	 * @param _index Amount of deposits
+	 * @param _index Index of deposits
+	 * @param _amount Amount of deposits to return
 	 * @param _user User to whom attribute the deposits
 	 */
 	function _verifyAndReturnDepositValue(
