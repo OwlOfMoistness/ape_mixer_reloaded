@@ -252,8 +252,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 */
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		uint256 _fee;
-		for (uint256 i = 0; i < _matchIds.length; i++) 
-			_fee += _breakMatch(_matchIds[i], _breakAll[i]);
+		uint256 _doglessMatchCounter = doglessMatchCounter;
+		for (uint256 i = 0; i < _matchIds.length; i++) {
+			(uint256 newFee, uint256 doglessOutcome) = _breakMatch(_matchIds[i], _breakAll[i], _doglessMatchCounter);
+			if (doglessOutcome == 1)
+				_doglessMatchCounter++;
+			else if (doglessOutcome == 2)
+				_doglessMatchCounter--;
+			_fee += newFee;
+		}
+		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
 	}
 
@@ -265,8 +273,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 */
 	function batchBreakDogMatch(uint256[] calldata _matchIds) external {
 		uint256 _fee;
+		uint256 _doglessMatchCounter = doglessMatchCounter;
 		for (uint256 i = 0; i < _matchIds.length; i++)
-			_fee += _breakDogMatch(_matchIds[i]);
+			_fee += _breakDogMatch(_matchIds[i], _doglessMatchCounter++);
+		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
 	}
 
@@ -429,18 +439,20 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to break
 	 * @param _breakAll Boolean indicating if we break the whole match or just the dogs
 	 */
-	function _breakMatch(uint256 _matchId, bool _breakAll) internal returns(uint256 _fee){
+	function _breakMatch(uint256 _matchId, bool _breakAll, uint256 _doglessMatchCounter) internal returns(uint256 _fee, uint256 doglessOutcome){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
 				msg.sender == adds[2] || msg.sender == adds[3], "!match");
-		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "Must wait min duration to break clause");
+		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "!duration");
 		bool breakGamma = msg.sender == adds[2] || msg.sender == adds[3];
 		bool primaryOwner = msg.sender == adds[0] || msg.sender == adds[1];
 		_breakAll = primaryOwner ? _breakAll : false;
-		if(breakGamma && !_breakAll)
-			_fee += _breakDogMatch(_matchId);
+		if(breakGamma && !_breakAll) {
+			_fee += _breakDogMatch(_matchId, _doglessMatchCounter);
+			doglessOutcome = 1;
+		}
 		else {
 			uint256 tokenId = _match.ids;
 			(uint256 total, uint256 totalGamma) = smoothOperator.uncommitNFTs(_match, msg.sender);
@@ -448,8 +460,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				delete assetToUser[_match.primary == 1 ? address(ALPHA) : address(BETA)][tokenId & 0xffffffffffff];
 			if (msg.sender == adds[2] && tokenId >> 48 > 0)
 				delete assetToUser[address(GAMMA)][tokenId >> 48];
-			if (adds[2] == address(0))
-				doglessMatches[_match.doglessIndex] = doglessMatches[--doglessMatchCounter];
+			if (adds[2] == address(0)) {
+				doglessOutcome = 2;
+				doglessMatches[_match.doglessIndex] = doglessMatches[doglessMatchCounter - 1];
+				delete doglessMatches[doglessMatchCounter - 1];
+			}
 			delete matches[_matchId];
 			_fee += _processRewards(total, adds, msg.sender, false);
 			if (totalGamma > 0)
@@ -462,13 +477,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * Internal function that breaks the dog agreement in a match
 	 * @param _matchId Match ID to break
 	 */
-	function _breakDogMatch(uint256 _matchId) internal returns(uint256){
+	function _breakDogMatch(uint256 _matchId, uint256 _doglessMatchCounter) internal returns(uint256){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[2] || msg.sender == adds[3], "!dog match");
 
-		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender);
+		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender, _doglessMatchCounter);
 		return _processRewards(totalGamma, adds, msg.sender, true);
 	}
 
@@ -635,12 +650,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to remove the dog from
 	 * @param _caller Initial caller of this execution
 	 */
-	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller) internal returns(uint256 totalGamma) {
+	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller, uint256 _doglessMatchCounter) internal returns(uint256 totalGamma) {
 		GreatMatch storage _match = matches[_matchId];
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
 		address dogOwner = _match.doggoOwner;
 		uint256 ids = _match.ids;
-		uint256 _doglessMatchCounter = doglessMatchCounter++;
 		totalGamma = smoothOperator.unbindDoggoFromExistingPrimary(
 			primary,
 			ids & 0xffffffffffff,
