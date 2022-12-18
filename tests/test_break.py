@@ -119,7 +119,7 @@ def test_break_dog_calling_standard_break_bayc(matcher, ape, bayc, bakc, smooth,
 	assert math.isclose(matcher.payments(coin_guy) - pre_c, (rewards_d * 1 // 10) * 96 // 100)
 	assert math.isclose(matcher.payments(dog_guy) - pre_d, rewards_d * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(other_guy) - pre_o, rewards_d  * 4// 10 * 96 // 100)
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(4)
+	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(4)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 1, nft_guy, coin_guy, NULL, NULL)
 	assert bakc.ownerOf(3) == dog_guy
 	matcher.gammaCurrentTotalDeposits() == 1
@@ -160,7 +160,7 @@ def test_break_dog_calling_standard_break_mayc(matcher, ape, mayc, bakc, smooth,
 	assert math.isclose(matcher.payments(coin_guy) - pre_c, (rewards_d * 1 // 10) * 96 // 100)
 	assert math.isclose(matcher.payments(dog_guy) - pre_d, rewards_d * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(other_guy) - pre_o, rewards_d  * 4// 10 * 96 // 100)
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(5)
+	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(5)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 2, nft_guy, coin_guy, NULL, NULL)
 	assert bakc.ownerOf(3) == dog_guy
 	matcher.gammaCurrentTotalDeposits() == 1
@@ -182,7 +182,7 @@ def test_break_dog_calling_standard_break_mayc(matcher, ape, mayc, bakc, smooth,
 
 def test_break_primary_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy, chain, ape_staking):
 	matcher.depositApeToken([0,0,1], {'from':other_guy})
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(5)
+	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(5)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (3 << 48) + 2, nft_guy, coin_guy, dog_guy, other_guy)
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
@@ -199,9 +199,9 @@ def test_break_primary_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_g
 	assert math.isclose(matcher.payments(dog_guy) - pre_d, rewards_d * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(other_guy) - pre_o, rewards_d  * 4// 10 * 96 // 100)
 	assert mayc.ownerOf(2) == nft_guy
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(4)
+	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(4)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (3 << 48) + 1, nft_guy, coin_guy, dog_guy, other_guy)
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(5)
+	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(5)
 	assert (active, pri, ids, pO, pT, dO, dT) == (False, 0, 0, NULL, NULL, NULL, NULL)
 	assert matcher.gammaCurrentTotalDeposits() == 0
 	assert matcher.betaCurrentTotalDeposits() == 1
