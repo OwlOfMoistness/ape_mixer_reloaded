@@ -5,6 +5,7 @@ interface IApeMatcher {
 		bool	active;	
 		uint8	primary;			// alpha:1/beta:2
 		uint32	start;				// time of activation
+		uint96	doglessIndex;
 		uint96	ids;				// right most 48 bits => primary | left most 48 bits => doggo
 		address	primaryOwner;
 		address	primaryTokensOwner;	// owner of ape tokens attributed to primary
@@ -15,6 +16,11 @@ interface IApeMatcher {
 	struct DepositPosition {
 		uint32 count;
 		address depositor;
+	}
+
+	struct DepositWithdrawals {
+		uint128 depositId;
+		uint32 amount;
 	}
 
 	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external;

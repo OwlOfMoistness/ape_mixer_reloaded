@@ -63,8 +63,13 @@ contract ApeMatcherHelper {
 		tokenIds[j++] = EOF;
 	}
 
-	function getUserQueuedCoinDepositsIDs(address _user, uint256 _type, uint256 _index, uint256 _maxLen) external view returns(uint256[] memory depositIds) {
-		depositIds = new uint256[](_maxLen);
+	function getUserQueuedCoinDepositsIDs(
+		address _user,
+		uint256 _type,
+		uint256 _index,
+		uint256 _maxLen) external view returns(uint32[] memory depositIds, uint32[] memory amounts) {
+		depositIds = new uint32[](_maxLen);
+		amounts = new uint32[](_maxLen);
 		uint256 j;
 		uint256 start;
 		uint256 end;
@@ -84,7 +89,7 @@ contract ApeMatcherHelper {
 
 		// if start + _index is higher than end (max endIndex) at time of call, return empty array
 		if (start + _index > end) {
-			return new uint256[](0);
+			return (new uint32[](0), new uint32[](0));
 		}
 
 		// if endIndex (_index + _maxLen) overflows, set endIndex to end
@@ -94,8 +99,10 @@ contract ApeMatcherHelper {
 
 		for(uint256 i = start + _index; i < endIndex; i++) {
 			IApeMatcherHelper.DepositPosition memory pos =  MATCHER.depositPosition(_type, i);
-			if (pos.depositor == _user)
-				depositIds[j++] = i;
+			if (pos.depositor == _user) {
+				depositIds[j] = uint32(i);
+				amounts[j++] += pos.count;
+			}
 		}
 	}
 
@@ -124,6 +131,23 @@ contract ApeMatcherHelper {
 	}
 
 	function getDoglessArray(uint256 _index, uint256 _maxLen) external view returns(uint256[] memory) {
+		uint256[] memory arr = new uint256[](_maxLen);
+		uint256 j;
+		uint256 counter = MATCHER.doglessMatchCounter();
+
+		if (_index > counter)
+			return new uint256[](0);
+		
+		uint256 endIndex = _index + _maxLen;
+		if (counter < endIndex)
+			endIndex = counter;
+		for(uint256 i = _index; i < endIndex; i++) {
+			arr[j++] = MATCHER.doglessMatches(i);
+		}
+		return arr;
+	}
+
+	function getDoglessArrayExtra(uint256 _index, uint256 _maxLen) external view returns(uint256[] memory) {
 		uint256[] memory arr = new uint256[](_maxLen);
 		uint256 j;
 		uint256 counter = MATCHER.doglessMatchCounter();

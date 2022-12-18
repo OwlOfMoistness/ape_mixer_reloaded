@@ -194,29 +194,29 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	/**  
 	 * @notice
 	 * Allows a user withdraw their ape coin deposits that haven't been consumed
-	 * @param _depositIndexAlpha Array of deposit IDs of the BAYC tranche
-	 * @param _depositIndexBeta Array of deposit IDs of the MAYC tranche
-	 * @param _depositIndexGamma Array of deposit IDs of the BAKC tranche
+	 * @param _depositAlpha Array of deposit IDs of the BAYC tranche
+	 * @param _depositGamma Array of deposit IDs of the MAYC tranche
+	 * @param _depositGamma Array of deposit IDs of the BAKC tranche
 	 */
 	function withdrawApeToken(
-		uint256[] calldata _depositIndexAlpha,
-		uint256[] calldata _depositIndexBeta,
-		uint256[] calldata _depositIndexGamma) external {
+		DepositWithdrawals[] calldata _depositAlpha,
+		DepositWithdrawals[] calldata _depositBeta,
+		DepositWithdrawals[] calldata _depositGamma) external {
 		uint256 amountToReturn = 0;
-		for (uint256 i = 0 ; i < _depositIndexAlpha.length; i++) {
-			if (i < _depositIndexAlpha.length - 1)
-				require(_depositIndexAlpha[i] > _depositIndexAlpha[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(0, _depositIndexAlpha[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositAlpha.length; i++) {
+			if (i < _depositAlpha.length - 1)
+				require(_depositAlpha[i].depositId > _depositAlpha[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(0, _depositAlpha[i].depositId, _depositAlpha[i].amount, msg.sender);
 		}
-		for (uint256 i = 0 ; i < _depositIndexBeta.length; i++) {
-			if (i < _depositIndexBeta.length - 1)
-				require(_depositIndexBeta[i] > _depositIndexBeta[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(1, _depositIndexBeta[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositBeta.length; i++) {
+			if (i < _depositBeta.length - 1)
+				require(_depositBeta[i].depositId > _depositBeta[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(1, _depositBeta[i].depositId, _depositBeta[i].amount, msg.sender);
 		}
-		for (uint256 i = 0 ; i < _depositIndexGamma.length; i++) {
-			if (i < _depositIndexGamma.length - 1)
-				require(_depositIndexGamma[i] > _depositIndexGamma[i + 1]);
-			amountToReturn += _verifyAndReturnDepositValue(2, _depositIndexGamma[i], msg.sender);
+		for (uint256 i = 0 ; i < _depositGamma.length; i++) {
+			if (i < _depositGamma.length - 1)
+				require(_depositGamma[i].depositId > _depositGamma[i + 1].depositId);
+			amountToReturn += _verifyAndReturnDepositValue(2, _depositGamma[i].depositId, _depositGamma[i].amount, msg.sender);
 		}
 		APE.transfer(msg.sender, amountToReturn);
 	}
@@ -252,8 +252,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 */
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		uint256 _fee;
-		for (uint256 i = 0; i < _matchIds.length; i++) 
-			_fee += _breakMatch(_matchIds[i], _breakAll[i]);
+		uint256 _doglessMatchCounter = doglessMatchCounter;
+		for (uint256 i = 0; i < _matchIds.length; i++) {
+			(uint256 newFee, uint256 doglessOutcome) = _breakMatch(_matchIds[i], _breakAll[i], _doglessMatchCounter);
+			if (doglessOutcome == 1)
+				_doglessMatchCounter++;
+			else if (doglessOutcome == 2)
+				_doglessMatchCounter--;
+			_fee += newFee;
+		}
+		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
 	}
 
@@ -265,8 +273,10 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 */
 	function batchBreakDogMatch(uint256[] calldata _matchIds) external {
 		uint256 _fee;
+		uint256 _doglessMatchCounter = doglessMatchCounter;
 		for (uint256 i = 0; i < _matchIds.length; i++)
-			_fee += _breakDogMatch(_matchIds[i]);
+			_fee += _breakDogMatch(_matchIds[i], _doglessMatchCounter++);
+		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
 	}
 
@@ -429,18 +439,20 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to break
 	 * @param _breakAll Boolean indicating if we break the whole match or just the dogs
 	 */
-	function _breakMatch(uint256 _matchId, bool _breakAll) internal returns(uint256 _fee){
+	function _breakMatch(uint256 _matchId, bool _breakAll, uint256 _doglessMatchCounter) internal returns(uint256 _fee, uint256 doglessOutcome){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
 				msg.sender == adds[2] || msg.sender == adds[3], "!match");
-		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "Must wait min duration to break clause");
+		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "!duration");
 		bool breakGamma = msg.sender == adds[2] || msg.sender == adds[3];
 		bool primaryOwner = msg.sender == adds[0] || msg.sender == adds[1];
 		_breakAll = primaryOwner ? _breakAll : false;
-		if(breakGamma && !_breakAll)
-			_fee += _breakDogMatch(_matchId);
+		if(breakGamma && !_breakAll) {
+			_fee += _breakDogMatch(_matchId, _doglessMatchCounter);
+			doglessOutcome = 1;
+		}
 		else {
 			uint256 tokenId = _match.ids;
 			(uint256 total, uint256 totalGamma) = smoothOperator.uncommitNFTs(_match, msg.sender);
@@ -448,6 +460,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				delete assetToUser[_match.primary == 1 ? address(ALPHA) : address(BETA)][tokenId & 0xffffffffffff];
 			if (msg.sender == adds[2] && tokenId >> 48 > 0)
 				delete assetToUser[address(GAMMA)][tokenId >> 48];
+			if (adds[2] == address(0)) {
+				doglessOutcome = 2;
+				doglessMatches[_match.doglessIndex] = doglessMatches[doglessMatchCounter - 1];
+				delete doglessMatches[doglessMatchCounter - 1];
+			}
 			delete matches[_matchId];
 			_fee += _processRewards(total, adds, msg.sender, false);
 			if (totalGamma > 0)
@@ -460,13 +477,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * Internal function that breaks the dog agreement in a match
 	 * @param _matchId Match ID to break
 	 */
-	function _breakDogMatch(uint256 _matchId) internal returns(uint256){
+	function _breakDogMatch(uint256 _matchId, uint256 _doglessMatchCounter) internal returns(uint256){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[2] || msg.sender == adds[3], "!dog match");
 
-		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender);
+		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender, _doglessMatchCounter);
 		return _processRewards(totalGamma, adds, msg.sender, true);
 	}
 
@@ -533,6 +550,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 _primarySpentCounter) internal {
 		uint256 matchCount = _min(_primary.balanceOf(address(this)), _primary == ALPHA ? alphaCurrentTotalDeposits : betaCurrentTotalDeposits);
 		uint256 gammaCount = _min(GAMMA.balanceOf(address(this)), gammaCurrentTotalDeposits);
+		uint256[2] memory _matchCounters = [doglessMatchCounter, matchCounter];
 		DepositPosition memory primaryPos = DepositPosition(
 				depositPosition[_primaryShare][_primarySpentCounter].count,
 				depositPosition[_primaryShare][_primarySpentCounter].depositor);
@@ -546,25 +564,25 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			betaCurrentTotalDeposits -= matchCount;
 		gammaCurrentTotalDeposits -= _min(matchCount, gammaCount);
 		for (uint256 i = 0; i < matchCount ; i++) {
-			bool gammaMatch = i < gammaCount;
 			uint256 gammaId = 0;
 			uint256 id = _primary.tokenOfOwnerByIndex(address(this), 0);
-			if (gammaMatch)
+			if (i < gammaCount)
 				gammaId = GAMMA.tokenOfOwnerByIndex(address(this), 0);
 			else
-				doglessMatches[doglessMatchCounter++] = matchCounter;
-			matches[matchCounter++] = GreatMatch(
+				doglessMatches[_matchCounters[0]++] = _matchCounters[1];
+			matches[_matchCounters[1]++] = GreatMatch(
 				true,
 				_primary == ALPHA ? uint8(1) : uint8(2),
 				uint32(block.timestamp),
+				i < gammaCount ? 0 : uint96(_matchCounters[0] - 1),
 				uint96((gammaId << 48) + id),
 				assetToUser[address(_primary)][id],
 				primaryPos.depositor,
-				gammaMatch ? assetToUser[address(GAMMA)][gammaId] : address(0),
-				gammaMatch ? gammaPos.depositor : address(0)
+				i < gammaCount ? assetToUser[address(GAMMA)][gammaId] : address(0),
+				i < gammaCount ? gammaPos.depositor : address(0)
 			);
 			primaryPos.count--;
-			if (gammaMatch)
+			if (i < gammaCount)
 				gammaPos.count--;
 			if (primaryPos.count == 0) {
 				delete depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter++ : betaSpentCounter++];
@@ -572,20 +590,22 @@ contract ApeMatcher is Pausable, IApeMatcher {
 					depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].count,
 					depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].depositor);
 			}
-			if (gammaPos.count == 0 && gammaMatch) {
+			if (gammaPos.count == 0 && i < gammaCount) {
 				delete depositPosition[GAMMA_SHARE][gammaSpentCounter++];
 				gammaPos = DepositPosition(
 					depositPosition[GAMMA_SHARE][gammaSpentCounter].count,
 					depositPosition[GAMMA_SHARE][gammaSpentCounter].depositor);
 			}
 			_primary.transferFrom(address(this), address(smoothOperator), id);
-			if (gammaMatch)
+			if (i < gammaCount)
 				GAMMA.transferFrom(address(this), address(smoothOperator), gammaId);
-			APE.transfer(address(smoothOperator), _primaryShare + (gammaMatch ? GAMMA_SHARE : 0));
+			APE.transfer(address(smoothOperator), _primaryShare + (i < gammaCount ? GAMMA_SHARE : 0));
 			smoothOperator.commitNFTs(address(_primary), id, gammaId);
 		}
 		depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].count = primaryPos.count;
 		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
+		doglessMatchCounter = _matchCounters[0];
+		matchCounter = _matchCounters[1];
 	}
 
 	/**
@@ -609,6 +629,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_match.ids |= uint96(gammaId << 48);
 			_match.doggoOwner = assetToUser[address(GAMMA)][gammaId];
 			_match.doggoTokensOwner = gammaPos.depositor;
+			_match.doglessIndex = 0;
 			GAMMA.transferFrom(address(this), address(smoothOperator), gammaId);
 			APE.transfer(address(smoothOperator), GAMMA_SHARE);
 			smoothOperator.bindDoggoToExistingPrimary(primary, _match.ids & 0xffffffffffff, gammaId);
@@ -629,7 +650,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to remove the dog from
 	 * @param _caller Initial caller of this execution
 	 */
-	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller) internal returns(uint256 totalGamma) {
+	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller, uint256 _doglessMatchCounter) internal returns(uint256 totalGamma) {
 		GreatMatch storage _match = matches[_matchId];
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
 		address dogOwner = _match.doggoOwner;
@@ -645,7 +666,8 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			delete assetToUser[address(GAMMA)][ids >> 48];
 		_match.doggoOwner = address(0);
 		_match.doggoTokensOwner = address(0);
-		doglessMatches[doglessMatchCounter++] = _matchId;
+		_match.doglessIndex = uint96(_doglessMatchCounter);
+		doglessMatches[_doglessMatchCounter] = _matchId;
 		_match.ids = uint96(ids & 0xffffffffffff);
 	}
 
@@ -675,43 +697,63 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @notice
 	 * Internal function that handles deposits for a user
 	 * @param _type Deposit type (bayc/mayc/bakc)
-	 * @param _index Amount of deposits
+	 * @param _index Index of deposits
+	 * @param _amount Amount of deposits to return
 	 * @param _user User to whom attribute the deposits
 	 */
-	function _verifyAndReturnDepositValue(uint256 _type, uint256 _index, address _user) internal returns (uint256){
+	function _verifyAndReturnDepositValue(
+		uint256 _type,
+		uint256 _index,
+		uint32 _amount,
+		address _user) internal returns (uint256){
 		uint256 count;
 		if (_type == 0) {
 			require(alphaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(alphaSpentCounter <= _index, "ApeMatcher: deposit consumed"); 
 			require(depositPosition[ALPHA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[ALPHA_SHARE][_index].count;
-			alphaCurrentTotalDeposits -= count;
-			depositPosition[ALPHA_SHARE][_index] = depositPosition[ALPHA_SHARE][alphaDepositCounter - 1];
-			delete depositPosition[ALPHA_SHARE][alphaDepositCounter-- - 1];
-			return ALPHA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			alphaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[ALPHA_SHARE][_index] = depositPosition[ALPHA_SHARE][alphaDepositCounter - 1];
+				delete depositPosition[ALPHA_SHARE][alphaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[ALPHA_SHARE][_index].count -= _amount;
+			return ALPHA_SHARE * _amount;
 		}
 		else if (_type == 1) {
 			require(betaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(betaSpentCounter <= _index, "ApeMatcher: deposit consumed");
 			require(depositPosition[BETA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[BETA_SHARE][_index].count;
-			betaCurrentTotalDeposits -= count;
-			depositPosition[BETA_SHARE][_index] = depositPosition[BETA_SHARE][betaDepositCounter - 1];
-			delete depositPosition[BETA_SHARE][betaDepositCounter-- - 1];
-			return BETA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			betaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[BETA_SHARE][_index] = depositPosition[BETA_SHARE][betaDepositCounter - 1];
+				delete depositPosition[BETA_SHARE][betaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[BETA_SHARE][_index].count -= _amount;
+			return BETA_SHARE * _amount;
 		}
 		else if (_type == 2) {
 			require(gammaDepositCounter > _index, "ApeMatcher: deposit !exist");
 			require(gammaSpentCounter <= _index, "ApeMatcher: deposit consumed");
 			require(depositPosition[GAMMA_SHARE][_index].depositor == _user, "ApeMatcher: Not owner of deposit");
-
 			count = depositPosition[GAMMA_SHARE][_index].count;
-			gammaCurrentTotalDeposits -= count;
-			depositPosition[GAMMA_SHARE][_index] = depositPosition[GAMMA_SHARE][gammaDepositCounter - 1];
-			delete depositPosition[GAMMA_SHARE][gammaDepositCounter-- - 1];
-			return GAMMA_SHARE * count;
+			require(_amount <= count, "ApeMatcher: !amount");
+
+			gammaCurrentTotalDeposits -= _amount;
+			if (count == _amount) {
+				depositPosition[GAMMA_SHARE][_index] = depositPosition[GAMMA_SHARE][gammaDepositCounter - 1];
+				delete depositPosition[GAMMA_SHARE][gammaDepositCounter-- - 1];
+			}
+			else
+				depositPosition[GAMMA_SHARE][_index].count -= _amount;
+			return GAMMA_SHARE * _amount;
 		}
 	}
 
