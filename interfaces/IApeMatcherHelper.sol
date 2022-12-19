@@ -16,12 +16,15 @@ interface IApeMatcherHelper {
 		bool	active;	
 		uint8	primary;			// alpha:1/beta:2
 		uint32	start;				// time of activation
+		uint96	doglessIndex;
 		uint96	ids;				// right most 48 bits => primary | left most 48 bits => doggo
 		address	primaryOwner;
 		address	primaryTokensOwner;	// owner of ape tokens attributed to primary
 		address doggoOwner;
 		address	doggoTokensOwner;	// owner of ape tokens attributed to doggo
 	}
+
+	function weights() external view returns(uint256);
 
 	function assetToUser(address, uint256) external view returns(address);
 	function alphaSpentCounter() external view returns(uint256);
