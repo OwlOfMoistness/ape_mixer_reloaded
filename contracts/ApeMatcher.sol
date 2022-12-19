@@ -548,9 +548,9 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		IERC721Enumerable _primary,
 		uint256 _primaryShare,
 		uint256 _primarySpentCounter) internal {
-		uint256 matchCount = _min(_primary.balanceOf(address(this)), _primary == ALPHA ? alphaCurrentTotalDeposits : betaCurrentTotalDeposits);
+		uint256 _gammaSpentCounter = gammaSpentCounter;
 		uint256 gammaCount = _min(GAMMA.balanceOf(address(this)), gammaCurrentTotalDeposits);
-		uint256[2] memory _matchCounters = [doglessMatchCounter, matchCounter];
+		uint256[3] memory _matchCounters = [doglessMatchCounter, matchCounter, _min(_primary.balanceOf(address(this)), _primary == ALPHA ? alphaCurrentTotalDeposits : betaCurrentTotalDeposits)];
 		DepositPosition memory primaryPos = DepositPosition(
 				depositPosition[_primaryShare][_primarySpentCounter].count,
 				depositPosition[_primaryShare][_primarySpentCounter].depositor);
@@ -559,11 +559,11 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				depositPosition[GAMMA_SHARE][gammaSpentCounter].depositor);
 
 		if (_primary == ALPHA)
-			alphaCurrentTotalDeposits -= matchCount;
+			alphaCurrentTotalDeposits -= _matchCounters[2];
 		else
-			betaCurrentTotalDeposits -= matchCount;
-		gammaCurrentTotalDeposits -= _min(matchCount, gammaCount);
-		for (uint256 i = 0; i < matchCount ; i++) {
+			betaCurrentTotalDeposits -= _matchCounters[2];
+		gammaCurrentTotalDeposits -= _min(_matchCounters[2], gammaCount);
+		for (uint256 i = 0; i < _matchCounters[2] ; i++) {
 			uint256 gammaId = 0;
 			uint256 id = _primary.tokenOfOwnerByIndex(address(this), 0);
 			if (i < gammaCount)
@@ -585,16 +585,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			if (i < gammaCount)
 				gammaPos.count--;
 			if (primaryPos.count == 0) {
-				delete depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter++ : betaSpentCounter++];
+				delete depositPosition[_primaryShare][_primarySpentCounter++];
 				primaryPos = DepositPosition(
-					depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].count,
-					depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].depositor);
+					depositPosition[_primaryShare][_primarySpentCounter].count,
+					depositPosition[_primaryShare][_primarySpentCounter].depositor);
 			}
 			if (gammaPos.count == 0 && i < gammaCount) {
-				delete depositPosition[GAMMA_SHARE][gammaSpentCounter++];
+				delete depositPosition[GAMMA_SHARE][_gammaSpentCounter++];
 				gammaPos = DepositPosition(
-					depositPosition[GAMMA_SHARE][gammaSpentCounter].count,
-					depositPosition[GAMMA_SHARE][gammaSpentCounter].depositor);
+					depositPosition[GAMMA_SHARE][_gammaSpentCounter].count,
+					depositPosition[GAMMA_SHARE][_gammaSpentCounter].depositor);
 			}
 			_primary.transferFrom(address(this), address(smoothOperator), id);
 			if (i < gammaCount)
@@ -602,8 +602,13 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			APE.transfer(address(smoothOperator), _primaryShare + (i < gammaCount ? GAMMA_SHARE : 0));
 			smoothOperator.commitNFTs(address(_primary), id, gammaId);
 		}
-		depositPosition[_primaryShare][_primary == ALPHA ? alphaSpentCounter : betaSpentCounter].count = primaryPos.count;
-		depositPosition[GAMMA_SHARE][gammaSpentCounter].count = gammaPos.count;
+		if (_primary == ALPHA)
+			alphaSpentCounter = _primarySpentCounter;
+		else
+			betaSpentCounter = _primarySpentCounter;
+		gammaSpentCounter = _gammaSpentCounter;
+		depositPosition[_primaryShare][_primarySpentCounter].count = primaryPos.count;
+		depositPosition[GAMMA_SHARE][_gammaSpentCounter].count = gammaPos.count;
 		doglessMatchCounter = _matchCounters[0];
 		matchCounter = _matchCounters[1];
 	}

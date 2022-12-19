@@ -176,4 +176,22 @@ contract ApeMatcherHelper {
 		}
 		return arr;
 	}
+
+	function getWeights() external view returns(uint128[4] memory primaryWeights, uint128[4] memory dogWeights) {
+		uint256 weight = MATCHER.weights();
+		uint256 dogMask = (2 << 128) - 1;
+		uint256 dogWeight = weight & dogMask;
+		weight >>= 128;
+		uint256 _uint32Mask = (2 << 32) - 1;
+
+		primaryWeights[0] = uint128((weight >> (32 * 3)) & _uint32Mask);
+		primaryWeights[1] = uint128((weight >> (32 * 2)) & _uint32Mask);
+		primaryWeights[2] = uint128((weight >> (32 * 1)) & _uint32Mask);
+		primaryWeights[3] = uint128((weight >> (32 * 0)) & _uint32Mask);
+
+		dogWeights[0] = uint128((dogWeight >> (32 * 3)) & _uint32Mask);
+		dogWeights[1] = uint128((dogWeight >> (32 * 2)) & _uint32Mask);
+		dogWeights[2] = uint128((dogWeight >> (32 * 1)) & _uint32Mask);
+		dogWeights[3] = uint128((dogWeight >> (32 * 0)) & _uint32Mask);
+	}
 }
