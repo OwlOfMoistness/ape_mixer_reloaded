@@ -34,6 +34,10 @@ interface IApeMatcherHelper {
 	function betaDepositCounter() external view returns(uint256);
 	function gammaDepositCounter() external view returns(uint256);
 
+	function alphaCurrentTotalDeposits() external view returns(uint256);
+	function betaCurrentTotalDeposits() external view returns(uint256);
+	function gammaCurrentTotalDeposits() external view returns(uint256);
+
 	function depositPosition(uint256, uint256) external view returns(DepositPosition memory);
 	function matches(uint256) external view returns(GreatMatch memory);
 	function matchCounter() external view returns(uint256);
