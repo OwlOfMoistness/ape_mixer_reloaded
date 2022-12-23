@@ -147,23 +147,6 @@ contract ApeMatcherHelper {
 		return arr;
 	}
 
-	function getDoglessArrayExtra(uint256 _index, uint256 _maxLen) external view returns(uint256[] memory) {
-		uint256[] memory arr = new uint256[](_maxLen);
-		uint256 j;
-		uint256 counter = MATCHER.doglessMatchCounter();
-
-		if (_index > counter)
-			return new uint256[](0);
-		
-		uint256 endIndex = _index + _maxLen;
-		if (counter < endIndex)
-			endIndex = counter;
-		for(uint256 i = _index; i < endIndex; i++) {
-			arr[j++] = MATCHER.doglessMatches(i);
-		}
-		return arr;
-	}
-
 	function getPendingRewardsOfMatches(uint256[] calldata _matchIds) external view returns(RewardInfo[] memory){
 		RewardInfo[] memory arr = new RewardInfo[](_matchIds.length);
 		for (uint256 i = 0; i < _matchIds.length; i++) {
@@ -193,5 +176,43 @@ contract ApeMatcherHelper {
 		dogWeights[1] = uint128((dogWeight >> (32 * 2)) & _uint32Mask);
 		dogWeights[2] = uint128((dogWeight >> (32 * 1)) & _uint32Mask);
 		dogWeights[3] = uint128((dogWeight >> (32 * 0)) & _uint32Mask);
+	}
+
+	function batchPendingRewards(uint256 _poolId, uint256[] calldata  _tokenIds) external view returns(uint256[] memory rewardsPerTokenId) {
+		rewardsPerTokenId = new uint256[](_tokenIds.length);
+		for (uint256 i = 0; i < _tokenIds.length; i++) {
+			rewardsPerTokenId[i] = APE_STAKING.pendingRewards(_poolId, SMOOTH, _tokenIds[i]);
+		}
+	}
+
+	function getDashboardData() external view returns(
+		uint256[3] memory depositCounts,
+		uint256[3] memory totalDepositCounts,
+		uint256[3] memory balMatcher,
+		uint256[3] memory balSmooth,
+		uint256[4] memory apys) {
+		depositCounts[0] = MATCHER.alphaDepositCounter() - MATCHER.alphaSpentCounter();
+		depositCounts[1] = MATCHER.betaDepositCounter() - MATCHER.betaSpentCounter();
+		depositCounts[2] = MATCHER.gammaDepositCounter() - MATCHER.gammaSpentCounter();
+
+		totalDepositCounts[0] = MATCHER.alphaCurrentTotalDeposits();
+		totalDepositCounts[1] = MATCHER.betaCurrentTotalDeposits();
+		totalDepositCounts[2] = MATCHER.gammaCurrentTotalDeposits();
+
+		balMatcher[0] = ALPHA.balanceOf(address(MATCHER));
+		balMatcher[1] = BETA.balanceOf(address(MATCHER));
+		balMatcher[2] = GAMMA.balanceOf(address(MATCHER));
+
+		balSmooth[0] = ALPHA.balanceOf(SMOOTH);
+		balSmooth[1] = BETA.balanceOf(SMOOTH);
+		balSmooth[2] = GAMMA.balanceOf(SMOOTH);
+
+		IApeStaking.PoolUI[4] memory p;
+
+		(p[0], p[1], p[2], p[3]) = APE_STAKING.getPoolsUI();
+		for (uint256 i = 0; i < 4; i++) {
+			(uint256 a,) = APE_STAKING.rewardsBy(p[i].poolId, p[i].currentTimeRange.startTimestampHour, p[i].currentTimeRange.endTimestampHour);
+			apys[i] = a * 1e18 * 4 / p[i].stakedAmount;
+		}
 	}
 }

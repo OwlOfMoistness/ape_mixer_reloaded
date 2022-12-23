@@ -77,6 +77,8 @@ interface IApeStaking {
     }
 
     function nftPosition(uint256, uint256) external view returns(Position memory);
+    function getPoolsUI() external view returns(PoolUI memory, PoolUI memory, PoolUI memory, PoolUI memory);
+    function rewardsBy(uint256 _poolId, uint256 _from, uint256 _to) external view returns (uint256, uint256);
 
 	function depositApeCoin(uint256 _amount, address _recipient) external;
 	function depositSelfApeCoin(uint256 _amount) external;

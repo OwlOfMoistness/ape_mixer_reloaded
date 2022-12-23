@@ -31,7 +31,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	uint256 constant GAMMA_SHARE = 856 ether; // dog
 
 	uint256 public fee;
-	uint256 weights;
+	uint256 public weights;
 	mapping(address => mapping(uint256 => address)) public assetToUser;
 
 	uint256 public matchCounter;
