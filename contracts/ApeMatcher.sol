@@ -10,7 +10,6 @@ import "../interfaces/IApeStaking.sol";
 
 contract ApeMatcher is Pausable, IApeMatcher {
 
-	uint256 constant public MIN_STAKING_PERIOD = 7 days;
 	uint256 constant public FEE = 40; // 4%
 	uint256 constant public DENOMINATOR = 1000;
 
@@ -445,7 +444,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[0] || msg.sender == adds[1] ||
 				msg.sender == adds[2] || msg.sender == adds[3], "!match");
-		require (block.timestamp - _match.start > MIN_STAKING_PERIOD, "!duration");
 		bool breakGamma = msg.sender == adds[2] || msg.sender == adds[3];
 		bool primaryOwner = msg.sender == adds[0] || msg.sender == adds[1];
 		_breakAll = primaryOwner ? _breakAll : false;

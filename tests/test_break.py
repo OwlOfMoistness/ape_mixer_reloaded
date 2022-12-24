@@ -29,8 +29,6 @@ def test_break_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchBreakMatch([0], [False], {'from':other_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([0], [False], {'from':nft_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(1, smooth, 1)
@@ -42,8 +40,6 @@ def test_break_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.alphaDepositCounter() == 2
 	matcher.alphaSpentCounter() == 1
 	matcher.depositNfts([1], [], [], {'from':nft_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([1], [False], {'from':nft_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(1, smooth, 1)
@@ -65,8 +61,6 @@ def test_break_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchBreakMatch([2], [False], {'from':other_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([2], [False], {'from':nft_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(2, smooth, 2)
@@ -80,8 +74,6 @@ def test_break_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.betaDepositCounter() == 2
 	matcher.betaSpentCounter() == 1
 	matcher.depositNfts([], [2], [], {'from':nft_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([3], [False], {'from':nft_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(2, smooth, 2)
@@ -104,8 +96,6 @@ def test_break_dog_calling_standard_break_bayc(matcher, ape, bayc, bakc, smooth,
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
 	matcher.depositApeToken([0,0,1], {'from':other_guy})
 	matcher.depositNfts([], [], [3], {'from':dog_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([4], [False], {'from':dog_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(1, smooth, 1)
@@ -145,8 +135,6 @@ def test_break_dog_calling_standard_break_mayc(matcher, ape, mayc, bakc, smooth,
 	ape.approve(matcher, 2 ** 256 - 1, {'from':other_guy})
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
 	matcher.depositApeToken([0,0,1], {'from':other_guy})
-	with reverts('!duration'):
-		matcher.batchBreakMatch([5], [False], {'from':dog_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
 	rewards = ape_staking.pendingRewards(2, smooth,41)
