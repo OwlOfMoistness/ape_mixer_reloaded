@@ -69,7 +69,6 @@ def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_g
 	assert math.isclose(ape.balanceOf(smooth) - matcher.fee() - pre_smooth, BAYC_DAILY_RATE * 96 // 100 )
 
 def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_guy, coin_guy,chain):
-	pre_match = ape.balanceOf(matcher)
 	ape.mint(other_guy, '1000000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':other_guy})
 	mayc.mint(dog_guy, 10)

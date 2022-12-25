@@ -20,7 +20,7 @@ def test_single_bayc_match(matcher, ape, bayc, nft_guy, coin_guy, ape_staking, s
 
 	matcher.depositNfts([10], [], [], {'from':nft_guy})
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == BAYC_CAP
 	assert bayc.ownerOf(10) == smooth
 	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
@@ -36,7 +36,7 @@ def test_single_mayc_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, s
 
 	matcher.depositNfts([], [5], [], {'from':nft_guy})
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == MAYC_CAP
 	assert mayc.ownerOf(5) == smooth
 	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
@@ -54,7 +54,7 @@ def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, sm
 
 	matcher.depositNfts([], [], [5], {'from':nft_guy})
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP
 	assert bakc.ownerOf(5) == smooth
 	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
@@ -63,7 +63,7 @@ def test_single_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, sm
 	matcher.depositNfts([], [], [6], {'from':nft_guy})
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
 	assert matcher.gammaDepositCounter() == 2
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP + BAKC_CAP
 	assert bakc.ownerOf(6) == smooth
 	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
@@ -119,7 +119,7 @@ def test_many_bakc_bind(matcher, ape, bakc, nft_guy, coin_guy, ape_staking, smoo
 	assert matcher.doglessMatchCounter() == 6
 	matcher.depositNfts([], [], [1,2,3,4,7,8], {'from':nft_guy})
 	matcher.depositApeToken([0,0,6], {'from':coin_guy})
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP * 6
 	assert bakc.ownerOf(1) == smooth
 	assert bakc.ownerOf(2) == smooth
@@ -187,7 +187,7 @@ def test_many_multi_match_then_dogs(matcher, ape, bayc, mayc, bakc, nft_guy, coi
 	matcher.depositApeToken([0,0,2], {'from':coin_guy})
 	matcher.depositApeToken([0,0,2], {'from':coin_guy})
 	matcher.depositApeToken([0,0,2], {'from':coin_guy})
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert ape.balanceOf(ape_staking) - pre == BAKC_CAP * 6
 	assert bakc.ownerOf(11) == smooth
 	assert bakc.ownerOf(12) == smooth
