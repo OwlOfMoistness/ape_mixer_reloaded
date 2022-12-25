@@ -102,7 +102,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function fetchApe() external onlyOwner {
 		uint256 amount = fee;
 		fee = 0;
-		APE.transfer(owner(), amount);
+		APE.transferFrom(address(smoothOperator), owner(), amount);
 	}
 
 	/**  
@@ -164,7 +164,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			// TODO emit event somehow
 		}
 		if (totalDeposit > 0) {
-			APE.transferFrom(msg.sender, address(this), totalDeposit);
+			APE.transferFrom(msg.sender, address(smoothOperator), totalDeposit);
 			_mixAndMatch(ALPHA, ALPHA_SHARE, alphaSpentCounter);
 			_mixAndMatch(BETA, BETA_SHARE, betaSpentCounter);
 			_bindDoggoToMatchId();
@@ -217,7 +217,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				require(_depositGamma[i].depositId > _depositGamma[i + 1].depositId);
 			amountToReturn += _verifyAndReturnDepositValue(2, _depositGamma[i].depositId, _depositGamma[i].amount, msg.sender);
 		}
-		APE.transfer(msg.sender, amountToReturn);
+		APE.transferFrom(address(smoothOperator), msg.sender, amountToReturn);
 	}
 
 	/**  
@@ -293,7 +293,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			(_fee, toReturn) = _smartBreakMatch(_matchIds[i], _swapSetup[i]);
 			_totalFee += _fee;
 		}
-		APE.transfer(msg.sender, toReturn);
+		APE.transferFrom(address(smoothOperator),msg.sender, toReturn);
 		_handleFee(_totalFee);
 	}
 
@@ -308,7 +308,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 rewards = payments[_user];
 		if (rewards > 0) {
 			payments[_user] = 0;
-			APE.transfer(_user, rewards);
+			APE.transferFrom(address(smoothOperator) ,_user, rewards);
 		}
 	}
 
@@ -568,7 +568,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		else
 			betaCurrentTotalDeposits -= _matchCounters[2];
 		gammaCurrentTotalDeposits -= _min(_matchCounters[2], gammaCount);
-		APE.transfer(address(smoothOperator), _primaryShare * _matchCounters[2] + GAMMA_SHARE * _min(_matchCounters[2], gammaCount));
 		for (uint256 i = 0; i < _matchCounters[2] ; i++) {
 			uint256 gammaId = 0;
 			uint256 id = _primary.tokenOfOwnerByIndex(address(this), 0);
@@ -631,7 +630,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				depositPosition[GAMMA_SHARE][gammaSpentCounter].depositor);
 
 		gammaCurrentTotalDeposits -= toBind;
-		APE.transfer(address(smoothOperator), GAMMA_SHARE * toBind);
 		for (uint256 i = 0; i < toBind; i++) {
 			GreatMatch storage _match = matches[doglessMatches[doglessIndex - i]];
 			uint256 gammaId = GAMMA.tokenOfOwnerByIndex(address(this), 0);

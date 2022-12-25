@@ -87,7 +87,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 					- totalGamma - (primary == ALPHA ? ALPHA_SHARE : BETA_SHARE)
 					- (_gammaId > 0 ? GAMMA_SHARE : 0);
 		// send rewards of both dog and primary parties
-		APE.transfer(manager, totalPrimary + totalGamma);
+		//APE.transfer(manager, totalPrimary + totalGamma);
 		tokens[0].tokenId = uint32(_in);
 		// stake new primary
 		if (primary == ALPHA)
@@ -140,7 +140,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			primary == ALPHA ? pairD : nullPairD,
 			primary == ALPHA ? nullPairD : pairD);
 		// send rewards of dog partiy
-		APE.transfer(manager,totalGamma);
+		//APE.transfer(manager,totalGamma);
 	}
 
 	/**
@@ -172,7 +172,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				APE_STAKING.claimMAYC(tokens, address(this));
 			total = APE.balanceOf(address(this)) - pre - totalGamma;
 		}
-		APE.transfer(manager, total + totalGamma);
+		//APE.transfer(manager, total + totalGamma);
 	}
 
 	/**
@@ -247,10 +247,11 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			primary == ALPHA ? nullPair : pair);
 		totalGamma = APE.balanceOf(address(this)) - pre - GAMMA_SHARE;
 		GAMMA.transferFrom(address(this), _receiver == _caller ? _receiver : manager, _gammaId);
-		APE.transfer(_tokenOwner == _caller ? _tokenOwner : manager, GAMMA_SHARE);
-		if (_tokenOwner != _caller)
+		if (_tokenOwner == _caller)
+			APE.transfer(_tokenOwner, GAMMA_SHARE);
+		else
 			IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _tokenOwner);
-		APE.transfer(manager, totalGamma);
+		//APE.transfer(manager, totalGamma);
 	}
 
 	/**
@@ -277,22 +278,25 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				primary == ALPHA ? nullPair : pair);
 			totalGamma = APE.balanceOf(address(this)) - pre - GAMMA_SHARE;
 			GAMMA.transferFrom(address(this), _caller == _match.doggoOwner ? _match.doggoOwner : manager, gammaId);
-			APE.transfer(_match.doggoTokensOwner == _caller ? _match.doggoTokensOwner : manager, GAMMA_SHARE);
-			if (_match.doggoTokensOwner != _caller)
+			if (_match.doggoTokensOwner == _caller)
+				APE.transfer( _match.doggoTokensOwner, GAMMA_SHARE);
+			else
 				IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _match.doggoTokensOwner);
 		}
+		pre = APE.balanceOf(address(this));
 		if (primary == ALPHA)
 			APE_STAKING.withdrawBAYC(tokens, address(this));
 		else
 			APE_STAKING.withdrawMAYC(tokens, address(this));
-		totalPrimary = APE.balanceOf(address(this)) - pre - totalGamma - primaryShare;
+		totalPrimary = APE.balanceOf(address(this)) - pre - primaryShare;
 		primary.transferFrom(address(this), _caller == _match.primaryOwner ? _match.primaryOwner : manager, tokenId);
-		APE.transfer(_match.primaryTokensOwner == _caller ? _match.primaryTokensOwner : manager, primaryShare);
-		if (_match.primaryTokensOwner != _caller)
+		if (_match.primaryTokensOwner == _caller)
+			APE.transfer(_match.primaryTokensOwner, primaryShare);
+		else
 			IApeMatcher(manager).depositApeTokenForUser(
 				primary == ALPHA ? [uint32(1), 0, 0] : [0, uint32(1), 0],
 				_match.primaryTokensOwner);
-		APE.transfer(manager, totalPrimary + totalGamma);
+		//APE.transfer(manager, totalPrimary + totalGamma);
 	}
 
 	/**

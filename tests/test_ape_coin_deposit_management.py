@@ -10,7 +10,7 @@ BAYC_CAP = 10094000000000000000000
 MAYC_CAP = 2042000000000000000000
 BAKC_CAP = 856000000000000000000
 
-def test_deposit_one_type(matcher, ape, nft_guy):
+def test_deposit_one_type(matcher, ape, nft_guy, smooth):
 	with reverts('!smooooth'):
 		matcher.depositApeTokenForUser([10,10,10], nft_guy, {'from':nft_guy})
 
@@ -18,83 +18,83 @@ def test_deposit_one_type(matcher, ape, nft_guy):
 	ape.approve(matcher, 2 ** 256 - 1, {'from':nft_guy})
 	matcher.depositApeToken([1, 0, 0], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 1
-	assert ape.balanceOf(matcher) == BAYC_CAP
+	assert ape.balanceOf(smooth) == BAYC_CAP
 	assert matcher.alphaDepositCounter() == 1
 	assert matcher.depositPosition(BAYC_CAP, 0) == (1, nft_guy)
 
 	matcher.depositApeToken([0, 1, 0], {'from':nft_guy})
 	assert matcher.betaCurrentTotalDeposits() == 1
-	assert ape.balanceOf(matcher) == BAYC_CAP + MAYC_CAP
+	assert ape.balanceOf(smooth) == BAYC_CAP + MAYC_CAP
 	assert matcher.betaDepositCounter() == 1
 	assert matcher.depositPosition(MAYC_CAP, 0) == (1, nft_guy)
 
 	matcher.depositApeToken([0, 0, 1], {'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 1
-	assert ape.balanceOf(matcher) == BAYC_CAP + MAYC_CAP + BAKC_CAP
+	assert ape.balanceOf(smooth) == BAYC_CAP + MAYC_CAP + BAKC_CAP
 	assert matcher.gammaDepositCounter() == 1
 	assert matcher.depositPosition(BAKC_CAP, 0) == (1, nft_guy)
 
-def test_withdraw_one_type(matcher, ape, nft_guy):
+def test_withdraw_one_type(matcher, ape, nft_guy, smooth):
 
 	matcher.withdrawApeToken([(0, 1)] ,[], [], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) ==  MAYC_CAP + BAKC_CAP
+	assert ape.balanceOf(smooth) ==  MAYC_CAP + BAKC_CAP
 	assert matcher.alphaDepositCounter() == 0
 	assert matcher.depositPosition(BAYC_CAP, 0) == (0, NULL)
 
 	matcher.withdrawApeToken([] ,[(0, 1)], [], {'from':nft_guy})
 	assert matcher.betaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) == BAKC_CAP
+	assert ape.balanceOf(smooth) == BAKC_CAP
 	assert matcher.betaDepositCounter() == 0
 	assert matcher.depositPosition(MAYC_CAP, 0) == (0, NULL)
 
 	matcher.withdrawApeToken([] ,[], [(0, 1)],{'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert matcher.gammaDepositCounter() == 0
 	assert matcher.depositPosition(BAKC_CAP, 0) == (0, NULL)
 
-def test_deposit_many_one_type(matcher, ape, nft_guy):
+def test_deposit_many_one_type(matcher, ape, nft_guy, smooth):
 
 	matcher.depositApeToken([100, 0, 0], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 100
-	assert ape.balanceOf(matcher) == BAYC_CAP * 100
+	assert ape.balanceOf(smooth) == BAYC_CAP * 100
 	assert matcher.alphaDepositCounter() == 1
 	assert matcher.depositPosition(BAYC_CAP, 0) == (100, nft_guy)
 
 	matcher.depositApeToken([0, 100, 0], {'from':nft_guy})
 	assert matcher.betaCurrentTotalDeposits() == 100
-	assert ape.balanceOf(matcher) == (BAYC_CAP + MAYC_CAP) * 100
+	assert ape.balanceOf(smooth) == (BAYC_CAP + MAYC_CAP) * 100
 	assert matcher.betaDepositCounter() == 1
 	assert matcher.depositPosition(MAYC_CAP, 0) == (100, nft_guy)
 
 	matcher.depositApeToken([0, 0, 100], {'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 100
-	assert ape.balanceOf(matcher) == (BAYC_CAP + MAYC_CAP + BAKC_CAP) * 100
+	assert ape.balanceOf(smooth) == (BAYC_CAP + MAYC_CAP + BAKC_CAP) * 100
 	assert matcher.gammaDepositCounter() == 1
 	assert matcher.depositPosition(BAKC_CAP, 0) == (100, nft_guy)
 
-def test_withdraw_many_one_type(matcher, ape, nft_guy):
+def test_withdraw_many_one_type(matcher, ape, nft_guy, smooth):
 
 	matcher.withdrawApeToken([(0, 100)] ,[], [], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) ==  (MAYC_CAP + BAKC_CAP) * 100
+	assert ape.balanceOf(smooth) ==  (MAYC_CAP + BAKC_CAP) * 100
 	assert matcher.alphaDepositCounter() == 0
 	assert matcher.depositPosition(BAYC_CAP, 0) == (0, NULL)
 
 	matcher.withdrawApeToken([] ,[(0, 100)], [], {'from':nft_guy})
 	assert matcher.betaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) == BAKC_CAP * 100
+	assert ape.balanceOf(smooth) == BAKC_CAP * 100
 	assert matcher.betaDepositCounter() == 0
 	assert matcher.depositPosition(MAYC_CAP, 0) == (0, NULL)
 
 	matcher.withdrawApeToken([], [], [(0, 100)], {'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 0
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 	assert matcher.gammaDepositCounter() == 0
 	assert matcher.depositPosition(BAKC_CAP, 0) == (0, NULL)
 
-def test_deposit_many(matcher, ape, nft_guy):
+def test_deposit_many(matcher, ape, nft_guy, smooth):
 
 	matcher.depositApeToken([100, 100, 100], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 100
@@ -109,9 +109,9 @@ def test_deposit_many(matcher, ape, nft_guy):
 	assert matcher.gammaDepositCounter() == 1
 	assert matcher.depositPosition(BAKC_CAP, 0) == (100, nft_guy)
 
-	assert ape.balanceOf(matcher) == (BAYC_CAP + MAYC_CAP + BAKC_CAP) * 100
+	assert ape.balanceOf(smooth) == (BAYC_CAP + MAYC_CAP + BAKC_CAP) * 100
 
-def test_withdraw_many(matcher, ape, nft_guy):
+def test_withdraw_many(matcher, ape, nft_guy, smooth):
 
 	matcher.withdrawApeToken([(0, 100)], [(0, 100)], [(0, 100)], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 0
@@ -126,7 +126,7 @@ def test_withdraw_many(matcher, ape, nft_guy):
 	assert matcher.gammaDepositCounter() == 0
 	assert matcher.depositPosition(BAKC_CAP, 0) == (0, NULL)
 
-	assert ape.balanceOf(matcher) == 0
+	assert ape.balanceOf(smooth) == 0
 
 def test_revert_outside_index(matcher, ape, nft_guy):
 	with reverts('ApeMatcher: deposit !exist'):
