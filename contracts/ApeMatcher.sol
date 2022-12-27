@@ -297,9 +297,9 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 _totalFee;
 		uint256 toReturn;
 		for (uint256 i = 0; i < _matchIds.length; i++) {
-			uint256 _fee;
-			(_fee, toReturn) = _smartBreakMatch(_matchIds[i], _swapSetup[i]);
-			_totalFee += _fee;
+			(uint256 realisedFee, uint256 _toReturn) = _smartBreakMatch(_matchIds[i], _swapSetup[i]);
+			_totalFee += realisedFee;
+			toReturn += _toReturn;
 		}
 		APE.transferFrom(address(smoothOperator),msg.sender, toReturn);
 		_handleFee(_totalFee);

@@ -177,9 +177,10 @@ def test_claiming_no_fee_primary_mayc(matcher, ape, mayc, ape_staking, nft_guy, 
 	assert math.isclose(matcher.payments(nft_guy), mayc_rewards)
 	chain.sleep(86400)
 	chain.mine()
+	mayc_rewards_2 = ape_staking.pendingRewards(2, matcher, 12)
 	pre = ape.balanceOf(nft_guy)
 	matcher.batchClaimRewardsFromMatches([3], True, {'from':nft_guy})
-	assert math.isclose(ape.balanceOf(nft_guy) - pre, mayc_rewards * 2)
+	assert math.isclose(ape.balanceOf(nft_guy) - pre, mayc_rewards + mayc_rewards_2)
 
 def test_claim_user_in_both_pairs_bayc_nft_side(matcher, smooth, ape, bayc, bakc, ape_staking, nft_guy, some_guy, coin_guy, chain):
 	bakc.mint(nft_guy, 10)
