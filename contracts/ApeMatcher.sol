@@ -102,7 +102,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function fetchApe() external onlyOwner {
 		uint256 amount = fee;
 		fee = 0;
-		APE.transfer(owner(), amount);
+		APE.transferFrom(address(smoothOperator), owner(), amount);
 	}
 
 	/**  
@@ -164,7 +164,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			// TODO emit event somehow
 		}
 		if (totalDeposit > 0) {
-			APE.transferFrom(msg.sender, address(this), totalDeposit);
+			APE.transferFrom(msg.sender, address(smoothOperator), totalDeposit);
 			_mixAndMatch(ALPHA, ALPHA_SHARE, alphaSpentCounter);
 			_mixAndMatch(BETA, BETA_SHARE, betaSpentCounter);
 			_bindDoggoToMatchId();
@@ -217,7 +217,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				require(_depositGamma[i].depositId > _depositGamma[i + 1].depositId);
 			amountToReturn += _verifyAndReturnDepositValue(2, _depositGamma[i].depositId, _depositGamma[i].amount, msg.sender);
 		}
-		APE.transfer(msg.sender, amountToReturn);
+		APE.transferFrom(address(smoothOperator), msg.sender, amountToReturn);
 	}
 
 	/**  
@@ -252,16 +252,19 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		uint256 _fee;
 		uint256 _doglessMatchCounter = doglessMatchCounter;
+		uint256 toReturn;
 		for (uint256 i = 0; i < _matchIds.length; i++) {
-			(uint256 newFee, uint256 doglessOutcome) = _breakMatch(_matchIds[i], _breakAll[i], _doglessMatchCounter);
+			(uint256 newFee, uint256 doglessOutcome, uint256 _toReturn) = _breakMatch(_matchIds[i], _breakAll[i], _doglessMatchCounter);
 			if (doglessOutcome == 1)
 				_doglessMatchCounter++;
 			else if (doglessOutcome == 2)
 				_doglessMatchCounter--;
 			_fee += newFee;
+			toReturn += _toReturn;
 		}
 		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
+		APE.transferFrom(address(smoothOperator), msg.sender, toReturn);
 	}
 
 	/**  
@@ -273,10 +276,15 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function batchBreakDogMatch(uint256[] calldata _matchIds) external {
 		uint256 _fee;
 		uint256 _doglessMatchCounter = doglessMatchCounter;
-		for (uint256 i = 0; i < _matchIds.length; i++)
-			_fee += _breakDogMatch(_matchIds[i], _doglessMatchCounter++);
+		uint256 toReturn;
+		for (uint256 i = 0; i < _matchIds.length; i++) {
+			(uint256 realisedFee, uint256 _toReturn) = _breakDogMatch(_matchIds[i], _doglessMatchCounter++);
+			_fee += realisedFee;
+			toReturn += _toReturn;
+		}
 		doglessMatchCounter = _doglessMatchCounter;
 		_handleFee(_fee);
+		APE.transferFrom(address(smoothOperator), msg.sender, toReturn);
 	}
 
 	/**  
@@ -286,10 +294,15 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _swapSetup Array of boolean indicating what the user wants swap in the match
 	 */
 	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external {
-		uint256 _fee;
-		for (uint256 i = 0; i < _matchIds.length; i++)
-			_fee += _smartBreakMatch(_matchIds[i], _swapSetup[i]);
-		_handleFee(_fee);
+		uint256 _totalFee;
+		uint256 toReturn;
+		for (uint256 i = 0; i < _matchIds.length; i++) {
+			(uint256 realisedFee, uint256 _toReturn) = _smartBreakMatch(_matchIds[i], _swapSetup[i]);
+			_totalFee += realisedFee;
+			toReturn += _toReturn;
+		}
+		APE.transferFrom(address(smoothOperator),msg.sender, toReturn);
+		_handleFee(_totalFee);
 	}
 
 	// INTERNAL
@@ -303,7 +316,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 rewards = payments[_user];
 		if (rewards > 0) {
 			payments[_user] = 0;
-			APE.transfer(_user, rewards);
+			APE.transferFrom(address(smoothOperator) ,_user, rewards);
 		}
 	}
 
@@ -337,7 +350,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to claim from
 	 * @param _swapSetup Boolean array indicating what the user wants swap in the match
 	 */
-	function _smartBreakMatch(uint256 _matchId, bool[4] memory _swapSetup) internal returns(uint256 _fee) {
+	function _smartBreakMatch(uint256 _matchId, bool[4] memory _swapSetup) internal returns(uint256 _fee, uint256 toReturn) {
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
@@ -348,7 +361,9 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_swapSetup[i] = _swapSetup[i] && msg.sender == adds[i];
 		uint256 ids = _match.ids;
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
-		(uint256 totalPrimary, uint256 totalGamma) = _smartSwap(_swapSetup, ids, primary, _matchId, msg.sender);
+		uint256 totalPrimary;
+		uint256 totalGamma;
+		(totalPrimary, totalGamma, toReturn) = _smartSwap(_swapSetup, ids, primary, _matchId, msg.sender);
 		if (totalPrimary > 0)
 			_fee += _processRewards(totalPrimary, adds, msg.sender, false);
 		if (totalGamma > 0)
@@ -369,7 +384,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 _ids,
 		address _primary,
 		uint256 _matchId,
-		address _user) internal returns (uint256 totalPrimary, uint256 totalGamma) {
+		address _user) internal returns (uint256 totalPrimary, uint256 totalGamma, uint256 toReturn) {
 		// swap primary nft out
 		if (_swapSetup[0]) {
 			require(IERC721Enumerable(_primary).balanceOf(address(this)) > 0, "ApeMatcher: !primary asset");
@@ -403,7 +418,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 					pos.count--;
 				betaCurrentTotalDeposits--;
 			}
-			APE.transfer(_user, _primary == address(ALPHA) ? ALPHA_SHARE : BETA_SHARE);
+			toReturn += _primary == address(ALPHA) ? ALPHA_SHARE : BETA_SHARE;
 			(totalPrimary,) = smoothOperator.claim(_primary, _ids & 0xffffffffffff, _ids >> 48, 1);
 		}
 		// swap doggo out
@@ -427,7 +442,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			else
 				pos.count--;
 			gammaCurrentTotalDeposits--;
-			APE.transfer(_user, GAMMA_SHARE);
+			toReturn += GAMMA_SHARE;
 			(,totalGamma) = smoothOperator.claim(_primary, _ids & 0xffffffffffff, _ids >> 48, 0);
 		}
 	}
@@ -438,7 +453,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to break
 	 * @param _breakAll Boolean indicating if we break the whole match or just the dogs
 	 */
-	function _breakMatch(uint256 _matchId, bool _breakAll, uint256 _doglessMatchCounter) internal returns(uint256 _fee, uint256 doglessOutcome){
+	function _breakMatch(uint256 _matchId, bool _breakAll, uint256 _doglessMatchCounter) internal returns(uint256 _fee, uint256 doglessOutcome, uint256 toReturn){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
@@ -448,12 +463,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		bool primaryOwner = msg.sender == adds[0] || msg.sender == adds[1];
 		_breakAll = primaryOwner ? _breakAll : false;
 		if(breakGamma && !_breakAll) {
-			_fee += _breakDogMatch(_matchId, _doglessMatchCounter);
+			uint256 realisedFee;
+			(realisedFee, toReturn) = _breakDogMatch(_matchId, _doglessMatchCounter);
+			_fee += realisedFee;
 			doglessOutcome = 1;
 		}
 		else {
 			uint256 tokenId = _match.ids;
-			(uint256 total, uint256 totalGamma) = smoothOperator.uncommitNFTs(_match, msg.sender);
+			uint256 total;
+			uint256 totalGamma;
+			(total, totalGamma, toReturn) = smoothOperator.uncommitNFTs(_match, msg.sender);
 			if (msg.sender == adds[0])
 				delete assetToUser[_match.primary == 1 ? address(ALPHA) : address(BETA)][tokenId & 0xffffffffffff];
 			if (msg.sender == adds[2] && tokenId >> 48 > 0)
@@ -475,14 +494,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * Internal function that breaks the dog agreement in a match
 	 * @param _matchId Match ID to break
 	 */
-	function _breakDogMatch(uint256 _matchId, uint256 _doglessMatchCounter) internal returns(uint256){
+	function _breakDogMatch(uint256 _matchId, uint256 _doglessMatchCounter) internal returns(uint256, uint256){
 		GreatMatch memory _match = matches[_matchId];
 		require(_match.active, "!active");
 		address[4] memory adds = [_match.primaryOwner, _match.primaryTokensOwner, _match.doggoOwner,  _match.doggoTokensOwner];
 		require(msg.sender == adds[2] || msg.sender == adds[3], "!dog match");
 
-		uint256 totalGamma = _unbindDoggoFromMatchId(_matchId, msg.sender, _doglessMatchCounter);
-		return _processRewards(totalGamma, adds, msg.sender, true);
+		(uint256 totalGamma, uint256 toReturn) = _unbindDoggoFromMatchId(_matchId, msg.sender, _doglessMatchCounter);
+		return (_processRewards(totalGamma, adds, msg.sender, true), toReturn);
 	}
 
 	/**  
@@ -597,7 +616,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_primary.transferFrom(address(this), address(smoothOperator), id);
 			if (i < gammaCount)
 				GAMMA.transferFrom(address(this), address(smoothOperator), gammaId);
-			APE.transfer(address(smoothOperator), _primaryShare + (i < gammaCount ? GAMMA_SHARE : 0));
 			smoothOperator.commitNFTs(address(_primary), id, gammaId);
 		}
 		if (_primary == ALPHA)
@@ -634,7 +652,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			_match.doggoTokensOwner = gammaPos.depositor;
 			_match.doglessIndex = 0;
 			GAMMA.transferFrom(address(this), address(smoothOperator), gammaId);
-			APE.transfer(address(smoothOperator), GAMMA_SHARE);
 			smoothOperator.bindDoggoToExistingPrimary(primary, _match.ids & 0xffffffffffff, gammaId);
 			if (--gammaPos.count == 0) {
 				delete depositPosition[GAMMA_SHARE][gammaSpentCounter++];
@@ -653,12 +670,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchId Match ID to remove the dog from
 	 * @param _caller Initial caller of this execution
 	 */
-	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller, uint256 _doglessMatchCounter) internal returns(uint256 totalGamma) {
+	function _unbindDoggoFromMatchId(uint256 _matchId, address _caller, uint256 _doglessMatchCounter) internal returns(uint256 totalGamma, uint256 toReturn) {
 		GreatMatch storage _match = matches[_matchId];
 		address primary = _match.primary == 1 ? address(ALPHA) : address(BETA);
 		address dogOwner = _match.doggoOwner;
 		uint256 ids = _match.ids;
-		totalGamma = smoothOperator.unbindDoggoFromExistingPrimary(
+		(totalGamma, toReturn) = smoothOperator.unbindDoggoFromExistingPrimary(
 			primary,
 			ids & 0xffffffffffff,
 			ids >> 48,
