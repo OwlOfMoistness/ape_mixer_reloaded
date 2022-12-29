@@ -4,7 +4,6 @@ interface IApeMatcher {
 	struct GreatMatch {
 		bool	active;	
 		uint8	primary;			// alpha:1/beta:2
-		uint32	start;				// time of activation
 		uint96	doglessIndex;
 		uint96	ids;				// right most 48 bits => primary | left most 48 bits => doggo
 		address	primaryOwner;
@@ -23,5 +22,20 @@ interface IApeMatcher {
 		uint32 amount;
 	}
 
+	struct MatchingParams {
+		uint256 dogCounter;
+		uint256 matchCounter;
+		uint256 toMatch;
+		uint256 pAvail;
+		uint256 dAvail;
+		uint256 gammaCount;
+		bool gamma;
+	}
+
 	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external;
+	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, bool _claim) external;
+	function withdrawApeToken(DepositWithdrawals[][] calldata _deposits) external;
+	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external;
+	function batchBreakDogMatch(uint256[] calldata _matchIds) external;
+	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external;
 }

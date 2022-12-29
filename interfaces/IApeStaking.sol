@@ -101,4 +101,5 @@ interface IApeStaking {
 	function withdrawBAKC(PairNftWithdrawWithAmount[] calldata _baycPairs, PairNftWithdrawWithAmount[] calldata _maycPairs) external;
 
     function pendingRewards(uint256 _poolId, address _address, uint256 _tokenId) external view returns (uint256);
+    function stakedTotal(address _address) external view returns (uint256);
 }

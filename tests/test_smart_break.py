@@ -47,11 +47,11 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 
 	matcher.depositNfts([1], [], [], {'from':nft_guy})
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 1, nft_guy, coin_guy, NULL, NULL)
-	with reverts('ApeMatcher: !primary asset'):
+	with reverts('!primary'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':nft_guy})
-	with reverts('ApeMatcher: !alpha deposits'):
+	with reverts('!alpha deposits'):
 		matcher.batchSmartBreakMatch([0], [[False, True, False, False]], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':other_guy})
@@ -64,7 +64,7 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':nft_guy})
 	assert_expected_payment(matcher, nft_guy, coin_guy, reward, snap)
 	assert bayc.ownerOf(1) == nft_guy
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 11, dog_guy, coin_guy, NULL, NULL)
 	matcher.depositApeToken([1,0,0], {'from':other_guy})
 	chain.sleep(86400)
@@ -75,7 +75,7 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.batchSmartBreakMatch([0], [[False, True, False, False]], {'from':coin_guy})
 	assert_expected_payment(matcher, dog_guy, coin_guy, reward, snap)
 	assert ape.balanceOf(coin_guy) == '1000000 ether'
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 11, dog_guy, other_guy, NULL, NULL)
 	matcher.depositNfts([1], [], [], {'from':nft_guy})
 	chain.sleep(86400)
@@ -85,7 +85,7 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 	assert reward > 0
 	matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':dog_guy})
 	assert_expected_payment(matcher, dog_guy, other_guy, reward, snap)
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 1, nft_guy, other_guy, NULL, NULL)
 	assert bayc.ownerOf(11) == dog_guy
 
@@ -100,11 +100,11 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 	pre_smooth = ape.balanceOf(smooth)
 	matcher.depositNfts([], [1], [], {'from':nft_guy})
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 1, nft_guy, coin_guy, NULL, NULL)
-	with reverts('ApeMatcher: !primary asset'):
+	with reverts('!primary'):
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':nft_guy})
-	with reverts('ApeMatcher: !beta deposits'):
+	with reverts('!beta deposits'):
 		matcher.batchSmartBreakMatch([1], [[False, True, False, False]], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':other_guy})
@@ -117,7 +117,7 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':nft_guy})
 	assert_expected_payment(matcher, nft_guy, coin_guy, reward, snap)
 	assert mayc.ownerOf(1) == nft_guy
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 11, dog_guy, coin_guy, NULL, NULL)
 	matcher.depositApeToken([0,1,0], {'from':other_guy})
 	chain.sleep(86400)
@@ -128,7 +128,7 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.batchSmartBreakMatch([1], [[False, True, False, False]], {'from':coin_guy})
 	assert_expected_payment(matcher, dog_guy, coin_guy, reward, snap)
 	assert ape.balanceOf(coin_guy) == '1000000 ether'
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 11, dog_guy, other_guy, NULL, NULL)
 	matcher.depositNfts([], [1], [], {'from':nft_guy})
 	chain.sleep(86400)
@@ -138,7 +138,7 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 	assert reward > 0
 	matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':dog_guy})
 	assert_expected_payment(matcher, dog_guy, other_guy, reward, snap)
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 1, nft_guy, other_guy, NULL, NULL)
 	assert mayc.ownerOf(11) == dog_guy
 
@@ -151,11 +151,11 @@ def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	matcher.depositNfts([], [], [3], {'from':dog_guy})
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 1
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (3 << 48) + 1, nft_guy, other_guy, dog_guy, coin_guy)
-	with reverts('ApeMatcher: !dog asset'):
+	with reverts('!dog asset'):
 		matcher.batchSmartBreakMatch([1], [[False, False, True, False]], {'from':dog_guy})
-	with reverts('ApeMatcher: !dog deposit'):
+	with reverts('!dog deposit'):
 		matcher.batchSmartBreakMatch([1], [[False, False, False, True]], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':accounts[9]})
@@ -168,7 +168,7 @@ def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	matcher.batchSmartBreakMatch([1], [[False, False, True, False]], {'from':dog_guy})
 	assert_expected_payment_dog(matcher, nft_guy, other_guy, dog_guy, coin_guy, reward, snap)
 	assert bakc.ownerOf(3) == dog_guy
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 1, nft_guy, other_guy, some_guy, coin_guy)
 	ape.mint(dog_guy, '100000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':dog_guy})
@@ -183,7 +183,7 @@ def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	matcher.batchSmartBreakMatch([1], [[True, False, False, True]], {'from':coin_guy})
 	assert_expected_payment_dog(matcher, nft_guy, other_guy, some_guy, coin_guy, reward, snap)
 	assert matcher.gammaCurrentTotalDeposits() == 0
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 1, nft_guy, other_guy, some_guy, dog_guy)
 	assert ape.balanceOf(coin_guy) == pre + BAKC_CAP
 	assert matcher.doglessMatchCounter() == 1
@@ -193,11 +193,11 @@ def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	assert matcher.doglessMatchCounter() == 1
 	matcher.depositNfts([], [], [8], {'from':dog_guy})
 	matcher.depositApeToken([0,0,1], {'from':coin_guy})
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (8 << 48) + 1, nft_guy, other_guy, dog_guy, coin_guy)
-	with reverts('ApeMatcher: !dog asset'):
+	with reverts('!dog asset'):
 		matcher.batchSmartBreakMatch([0], [[False, False, True, False]], {'from':dog_guy})
-	with reverts('ApeMatcher: !dog deposit'):
+	with reverts('!dog deposit'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, True]], {'from':coin_guy})
 	with reverts('!match'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':accounts[9]})
@@ -210,7 +210,7 @@ def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	matcher.batchSmartBreakMatch([0], [[True, True, True, False]], {'from':dog_guy})
 	assert_expected_payment_dog(matcher, nft_guy, other_guy, dog_guy, coin_guy, reward, snap)
 	assert bakc.ownerOf(8) == dog_guy
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 1, nft_guy, other_guy, some_guy, coin_guy)
 	matcher.depositApeToken([0,0,1], {'from':dog_guy})
 	pre = ape.balanceOf(coin_guy)
@@ -221,7 +221,7 @@ def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 	assert reward > 0
 	matcher.batchSmartBreakMatch([0], [[True, False, True, True]], {'from':coin_guy})
 	assert_expected_payment_dog(matcher, nft_guy, other_guy, some_guy, coin_guy, reward, snap)
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 1, nft_guy, other_guy, some_guy, dog_guy)
 	assert ape.balanceOf(coin_guy) == pre + BAKC_CAP
 	# assert ape.balanceOf(smooth) == 0
@@ -240,11 +240,11 @@ def test_break_filled_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_
 	assert reward_d > 0
 	matcher.batchSmartBreakMatch([0], [[True, True, False, False]], {'from':nft_guy})
 	assert_expected_payment_both(matcher, nft_guy, other_guy, some_guy, dog_guy, reward, reward_d, snap)
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
 	assert bayc.ownerOf(1) == nft_guy
 	# assert ape.balanceOf(smooth) == 0
-	with reverts('ApeMatcher: !alpha deposits'):
+	with reverts('!alpha deposits'):
 		matcher.batchSmartBreakMatch([0], [[True, True, False, False]], {'from':other_guy})
 	d =  matcher.alphaDepositCounter()
 	pre = ape.balanceOf(other_guy)
@@ -260,7 +260,7 @@ def test_break_filled_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_
 	assert_expected_payment(matcher, mix_guy, other_guy, reward, snap)
 	assert matcher.payments(some_guy) == snap[2]
 	assert matcher.payments(dog_guy) == snap[3]
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(0)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (18 << 48) + 21, mix_guy, coin_guy, some_guy, dog_guy)
 	assert matcher.alphaCurrentTotalDeposits() == 1
 	assert matcher.alphaDepositCounter() - d == 1
@@ -283,12 +283,12 @@ def test_break_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_
 	assert reward_d > 0
 	matcher.batchSmartBreakMatch([1], [[True, True, False, False]], {'from':nft_guy})
 	assert_expected_payment_both(matcher, nft_guy, other_guy, some_guy, dog_guy, reward, reward_d, snap)
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 21, mix_guy, other_guy, some_guy, dog_guy)
 	assert mayc.ownerOf(1) == nft_guy
 	# assert ape.balanceOf(smooth) == 0
 
-	with reverts('ApeMatcher: !beta deposits'):
+	with reverts('!beta deposits'):
 		matcher.batchSmartBreakMatch([1], [[True, True, False, True]], {'from':other_guy})
 	d =  matcher.betaDepositCounter()
 	pre = ape.balanceOf(other_guy)
@@ -304,7 +304,7 @@ def test_break_filled_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_
 	assert_expected_payment(matcher, mix_guy, other_guy, reward, snap)
 	assert matcher.payments(some_guy) == snap[2]
 	assert matcher.payments(dog_guy) == snap[3]
-	(active, pri, _, _, ids, pO, pT, dO, dT) = matcher.matches(1)
+	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (13 << 48) + 21, mix_guy, coin_guy, some_guy, dog_guy)
 	assert matcher.betaCurrentTotalDeposits() == 1
 	assert matcher.betaDepositCounter() - d == 1

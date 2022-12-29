@@ -14,10 +14,10 @@ BAKC_CAP = 856000000000000000000
 def deploy():
 	deployer = accounts.load('ape_matcher_dep', '\0')
 
-	matcher = ApeMatcher.deploy(ALPHA, BETA, GAMMA, APE, APE_STAKING,  {'from':deployer}, publish_source=True)
-	ope =  SmoothOperator.deploy(matcher, ALPHA, BETA, GAMMA, APE, APE_STAKING,{'from':deployer}, publish_source=True)
+	matcher = ApeMatcher.deploy(ALPHA, BETA, GAMMA, APE, APE_STAKING,  {'from':deployer}, publish_source=False)
+	ope =  SmoothOperator.deploy(matcher, ALPHA, BETA, GAMMA, APE, APE_STAKING,{'from':deployer}, publish_source=False)
 	matcher.setOperator(ope, {'from':deployer})
-	helper = ApeMatcherHelper.deploy(APE_STAKING, ALPHA, BETA, GAMMA, APE, matcher, ope, {'from':deployer}, publish_source=True)
+	helper = ApeMatcherHelper.deploy(APE_STAKING, ALPHA, BETA, GAMMA, APE, matcher, ope, {'from':deployer}, publish_source=False)
 
 	print(f'matcher: {matcher.address}')
 	print(f'smooth: {ope.address}')
@@ -59,10 +59,14 @@ def deploy_go():
 	# ape_staking.addTimeRange(3, 767000000000000000000000, 1686675600, 1694538000,BAKC_CAP,{'from':deployer})
 	# ape_staking.addTimeRange(3, 575250000000000000000000, 1694538000, 1702400400,BAKC_CAP,{'from':deployer})
 
-	matcher = ApeMatcher.deploy(alpha, beta, gamma, ape, ape_staking,  {'from':deployer}, publish_source=True)
-	ope =  SmoothOperator.deploy(matcher, alpha, beta, gamma, ape, ape_staking,{'from':deployer}, publish_source=True)
-	matcher.setOperator(ope, {'from':deployer})
+	# matcher = ApeMatcher.deploy(alpha, beta, gamma, ape, ape_staking,  {'from':deployer}, publish_source=True)
+	matcher = ApeMatcher.at('0x71e9016ECC772FB54f51b2d3D955C2931E2044D2')
+	# ope =  SmoothOperator.deploy(matcher, alpha, beta, gamma, ape, ape_staking,{'from':deployer}, publish_source=True)
+	ope =  SmoothOperator.at('0xB46cb1F47173b7962D2DF3D7346cCe6fD3295F82')
+	# SmoothOperator.publish_source(ope)
 	helper = ApeMatcherHelper.deploy(ape_staking, alpha, beta, gamma, ape, matcher, ope, {'from':deployer}, publish_source=True)
+	# matcher.setOperator(ope, {'from':deployer, 'required_confs':0})
+	# matcher.updateWeights([500,500,0,0], [100,100,400,400], {'from':deployer, 'required_confs':0})
 
 	print(f'alpha: {alpha.address}')
 	print(f'beta: {beta.address}')

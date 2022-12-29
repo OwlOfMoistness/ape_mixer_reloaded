@@ -49,6 +49,16 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 
 	/**
 	 * @notice
+	 * Function that stakes coins to the vault
+	 * @param _vault Contract address of the compound vault
+	 * @param _amountToReturn Amount to return
+	 */
+	function repayDebt(address _vault, uint256 _amountToReturn) external onlyManager {
+		APE_STAKING.depositApeCoin(_amountToReturn, _vault);
+	}
+
+	/**
+	 * @notice
 	 * Function that swaps a primary asset from a match
 	 * @param _primary Contract address of the primary asset
 	 * @param _in New asset ID to be swapped in
