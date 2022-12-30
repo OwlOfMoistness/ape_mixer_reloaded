@@ -18,6 +18,7 @@ contract ApeStakingCompounder is Ownable {
 	mapping(address => uint256) public balanceOf;
 	uint256 public debt;
 	mapping(address => uint256) public userDebt;
+	uint256 public totalUserDebt;
 
 	constructor(address a, address b) {
 		APE_STAKING = IApeStaking(a);
@@ -31,14 +32,14 @@ contract ApeStakingCompounder is Ownable {
 	}
 
 	function setMatcher(address _matcher) external onlyOwner {
-		require(SMOOTH == address(0));
+		require(address(MATCHER) == address(0));
 		MATCHER = IApeMatcher(_matcher);
 	}
 
 
 	function borrow(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
-		require(_amount <= liquid());
+		require(_amount < liquid());
 
 		debt += _amount;
 		APE_STAKING.withdrawApeCoin(_amount, SMOOTH);
@@ -46,21 +47,34 @@ contract ApeStakingCompounder is Ownable {
 
 	function repay(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
-		require(_amount <= liquid());
 
 		debt -= _amount;
 	}
 
+	function getStakedTotal() public view returns(uint256) {
+		uint256 val;
+		(val,) = APE_STAKING.addressPosition(address(this));
+		return val;
+	}
+
 	function liquid() public view returns(uint256) {
-		return APE_STAKING.stakedTotal(address(this));
+		return getStakedTotal() - totalUserDebt;
 	}
 
 	function pricePerShare() public view returns(uint256) {
 		if (totalSupply == 0)
 			return 1e18;
-		return (APE_STAKING.stakedTotal(address(this)) + debt + 
+		return ((getStakedTotal() + debt + 
 				APE.balanceOf(address(this)) +
-				APE_STAKING.pendingRewards(0, address(this), 0)) * 1e18 / totalSupply;
+				APE_STAKING.pendingRewards(0, address(this), 0)) * 1e18) / totalSupply;
+	}
+
+	function pricePerShareBehalf(uint256 _sub) internal view returns(uint256) {
+		if (totalSupply == 0)
+			return 1e18;
+		return ((getStakedTotal() + debt + 
+				APE.balanceOf(address(this)) +
+				APE_STAKING.pendingRewards(0, address(this), 0) - _sub) * 1e18) / totalSupply;
 	}
 
 	function deposit(uint256 _amount) external {
@@ -74,12 +88,12 @@ contract ApeStakingCompounder is Ownable {
 
 	function depositOnBehalf(uint256 _amount, address _user) external {
 		require(msg.sender == address(MATCHER));
-		uint256 shares = _amount * 1e18 / pricePerShare();
-	
+		uint256 shares = _amount * 1e18 / pricePerShareBehalf(_amount);
+
 		balanceOf[_user] += shares;
 		totalSupply += shares;
 		userDebt[_user] += _amount;
-		APE.transferFrom(msg.sender, address(this), _amount);
+		totalUserDebt += _amount;
 		compound();
 	}
 
@@ -90,7 +104,7 @@ contract ApeStakingCompounder is Ownable {
 	function withdraw(uint256 _shares) public {
 		uint256 value = _shares * pricePerShare() / 1e18;
 		uint256 totalValue = balanceOf[msg.sender] * pricePerShare() / 1e18;
-		require(totalValue - value > userDebt[msg.sender]);
+		require(totalValue - value >= userDebt[msg.sender]);
 
 		balanceOf[msg.sender] -= _shares;
 		totalSupply -= _shares;
@@ -98,16 +112,20 @@ contract ApeStakingCompounder is Ownable {
 		APE_STAKING.withdrawApeCoin(value, msg.sender);
 	}
 
-	function withdrawExactAmountOnBehalf(uint256 _amount, address _user) external {
+	function withdrawExactAmountOnBehalf(uint256 _amount, address _user, address _to) external {
 		require(msg.sender == address(MATCHER));
 		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
 
 		balanceOf[_user] -= sharesToWithdraw;
 		totalSupply -= sharesToWithdraw;
 		userDebt[_user] -= _amount;
-		compound();
-		APE_STAKING.withdrawApeCoin(_amount, msg.sender);
-
+		totalUserDebt -= _amount;
+		if (_amount == getStakedTotal()) {
+			APE_STAKING.withdrawApeCoin(_amount, address(this));
+			APE.transfer(_to, _amount);
+		}
+		else
+			APE_STAKING.withdrawApeCoin(_amount, _to);
 	}
 
 	function compound() public {

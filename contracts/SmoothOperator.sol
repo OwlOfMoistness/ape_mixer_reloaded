@@ -265,7 +265,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 	 * @param _caller Address that initiated the execution
 	 */
 	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma, uint256 toReturn) {
-		IERC721Enumerable primary = _match.primary == 1 ? ALPHA : BETA;
+		IERC721Enumerable primary = _match.doglessIndex & 1 == 1 ? ALPHA : BETA;
 		uint256 tokenId = uint256(_match.ids & (2**48 - 1));
 		uint256 gammaId = uint256(_match.ids >> 48);
 		uint256 primaryShare = primary == ALPHA ? ALPHA_SHARE : BETA_SHARE;

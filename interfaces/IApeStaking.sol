@@ -102,4 +102,5 @@ interface IApeStaking {
 
     function pendingRewards(uint256 _poolId, address _address, uint256 _tokenId) external view returns (uint256);
     function stakedTotal(address _address) external view returns (uint256);
+    function addressPosition(address) external view returns(uint256, int256);
 }

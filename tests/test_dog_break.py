@@ -39,13 +39,13 @@ def test_break_dog_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy
 	matcher.depositApeToken([1, 0, 1], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 0
 	assert ape.balanceOf(coin_guy) == pre_ape - BAYC_CAP - BAKC_CAP
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
-	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, (2 << 48) + 1, nft_guy, coin_guy, dog_guy, coin_guy)
+	(dogless, ids, pO, pT, dO, dT) = matcher.matches(0)
+	assert (dogless & 1, ids, pO, pT, dO, dT) == (1, (2 << 48) + 1, nft_guy, coin_guy, dog_guy, coin_guy)
 	with reverts('!dog match'):
 		matcher.batchBreakDogMatch([0], {'from':other_guy})
 	with reverts('!dog match'):
 		matcher.batchBreakDogMatch([0], {'from':nft_guy})
-	with reverts('!active'):
+	with reverts('!dog match'):
 		matcher.batchBreakDogMatch([1], {'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 0
 	assert matcher.gammaDepositCounter() == 1
@@ -64,8 +64,8 @@ def test_break_dog_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy
 	assert bakc.ownerOf(2) == dog_guy
 	assert matcher.assetToUser(bakc, 2) == NULL
 	assert ape.balanceOf(coin_guy) == pre_ape - BAYC_CAP - BAKC_CAP
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(0)
-	assert (active, pri, ids, pO, pT, dO, dT) == (True, 1, 1, nft_guy, coin_guy, NULL, NULL)
+	(dogless, ids, pO, pT, dO, dT) = matcher.matches(0)
+	assert (dogless & 1, ids, pO, pT, dO, dT) == (1, 1, nft_guy, coin_guy, NULL, NULL)
 	pre = ape.balanceOf(coin_guy)
 	matcher.withdrawApeToken([[], [], [(1, 1)]], {'from':coin_guy})
 	assert ape.balanceOf(coin_guy) - pre == BAKC_CAP
@@ -83,8 +83,8 @@ def test_break_dog_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy
 	matcher.depositNfts([], [], [3], {'from':dog_guy})
 	assert matcher.doglessMatchCounter() == 0
 	assert ape.balanceOf(coin_guy) == pre_ape - MAYC_CAP - BAKC_CAP
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
-	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, (3 << 48) + 2, nft_guy, coin_guy, dog_guy, coin_guy)
+	(dogless, ids, pO, pT, dO, dT) = matcher.matches(1)
+	assert (dogless & 1, ids, pO, pT, dO, dT) == (0, (3 << 48) + 2, nft_guy, coin_guy, dog_guy, coin_guy)
 	with reverts('!dog match'):
 		matcher.batchBreakDogMatch([1], {'from':other_guy})
 	with reverts('!dog match'):
@@ -103,8 +103,8 @@ def test_break_dog_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy
 	assert bakc.ownerOf(3) == matcher
 	assert ape.balanceOf(coin_guy) == pre_ape - MAYC_CAP
 	assert matcher.assetToUser(bakc, 3) == dog_guy
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(1)
-	assert (active, pri, ids, pO, pT, dO, dT) == (True, 2, 2, nft_guy, coin_guy, NULL, NULL)
+	(dogless, ids, pO, pT, dO, dT) = matcher.matches(1)
+	assert (dogless & 1, ids, pO, pT, dO, dT) == (0, 2, nft_guy, coin_guy, NULL, NULL)
 
 def test_combo_bind_break(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy, other_guy):
 	pre_ape = ape.balanceOf(coin_guy)

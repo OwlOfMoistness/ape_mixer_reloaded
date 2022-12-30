@@ -2,9 +2,7 @@ pragma solidity ^0.8.17;
 
 interface IApeMatcher {
 	struct GreatMatch {
-		bool	active;	
-		uint8	primary;			// alpha:1/beta:2
-		uint96	doglessIndex;
+		uint96	doglessIndex;		// this var will hold primary data in first right most bit. 1 is alpha, 0 is beta
 		uint96	ids;				// right most 48 bits => primary | left most 48 bits => doggo
 		address	primaryOwner;
 		address	primaryTokensOwner;	// owner of ape tokens attributed to primary
@@ -24,7 +22,6 @@ interface IApeMatcher {
 
 	struct MatchingParams {
 		uint256 dogCounter;
-		uint256 matchCounter;
 		uint256 toMatch;
 		uint256 pAvail;
 		uint256 dAvail;

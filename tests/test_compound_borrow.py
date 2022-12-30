@@ -30,8 +30,8 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matche
 	liquid = compounder.liquid()
 	matcher.depositNfts([1,2,3,4,5], [], [], {'from':nft_guy})
 	for i in range(5):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, compounder, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
+		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
 	assert compounder.debt() == BAYC_CAP * 5
 	assert liquid - compounder.liquid() == BAYC_CAP * 5
 	assert matcher.alphaSpentCounter() == 0
@@ -51,11 +51,11 @@ def test_match_some_deposits_bayc(compounder, ape, bayc, nft_guy, coin_guy, matc
 	assert matcher.alphaDepositCounter() == 1
 	assert matcher.alphaCurrentTotalDeposits() == 0
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 5)
-		assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, compounder, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 5)
+		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 7)
-		assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, coin_guy, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 7)
+		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, coin_guy, NULL, NULL)
 	assert compounder.debt() == BAYC_CAP * 7
 	assert liquid - compounder.liquid() == BAYC_CAP * 2
 
@@ -71,8 +71,8 @@ def test_match_from_borrow_mayc(compounder, ape, mayc, nft_guy, coin_guy, matche
 	liquid = compounder.liquid()
 	matcher.depositNfts([], [1,2,3,4,5], [], {'from':nft_guy})
 	for i in range(5):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 9)
-		assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, compounder, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 9)
+		assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, compounder, NULL, NULL)
 	assert compounder.debt() == MAYC_CAP * 5 + BAYC_CAP * 7
 	assert liquid - compounder.liquid() == MAYC_CAP * 5
 	assert matcher.betaSpentCounter() == 0
@@ -92,11 +92,11 @@ def test_match_some_deposits_mayc(compounder, ape, mayc, nft_guy, coin_guy, matc
 	assert matcher.betaDepositCounter() == 1
 	assert matcher.betaCurrentTotalDeposits() == 0
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 14)
-		assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, compounder, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 14)
+		assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, compounder, NULL, NULL)
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 16)
-		assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, coin_guy, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 16)
+		assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, coin_guy, NULL, NULL)
 	assert compounder.debt() == MAYC_CAP * 7 + BAYC_CAP * 7
 	assert liquid - compounder.liquid() == MAYC_CAP * 2
 
@@ -113,16 +113,17 @@ def test_no_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_s
 	assert matcher.alphaDepositCounter() == 2
 	assert matcher.alphaCurrentTotalDeposits() == 2
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 18)
-		assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, coin_guy, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 18)
+		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, coin_guy, NULL, NULL)
 	matcher.depositNfts([13, 14], [], [], {'from':nft_guy})
 	assert matcher.alphaSpentCounter() == 2
 	assert matcher.alphaDepositCounter() == 2
 	assert matcher.alphaCurrentTotalDeposits() == 0
 	for i in range(2):
-			(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 20)
-			assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, coin_guy, NULL, NULL)
+			(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 20)
+			assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, coin_guy, NULL, NULL)
 	assert liquid == compounder.liquid()
+	assert compounder.debt() == MAYC_CAP * 7 + BAYC_CAP * 7
 
 def test_no_borrow_mayc(compounder, ape, mayc, nft_guy, coin_guy, matcher, ape_staking):
 	mayc.mint(nft_guy, 10)
@@ -137,17 +138,18 @@ def test_no_borrow_mayc(compounder, ape, mayc, nft_guy, coin_guy, matcher, ape_s
 	assert matcher.betaDepositCounter() == 2
 	assert matcher.betaCurrentTotalDeposits() == 2
 	for i in range(2):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 22)
-		assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, coin_guy, NULL, NULL)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 22)
+		assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, coin_guy, NULL, NULL)
 	matcher.depositNfts([], [13, 14], [], {'from':nft_guy})
 	assert matcher.betaSpentCounter() == 2
 	assert matcher.betaDepositCounter() == 2
 	assert matcher.betaCurrentTotalDeposits() == 0
 	for i in range(2):
-			(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 24)
-			assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, coin_guy, NULL, NULL)
+			(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 24)
+			assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, coin_guy, NULL, NULL)
 	assert liquid == compounder.liquid()
 	assert matcher.alphaSpentCounter() == 2
+	assert compounder.debt() == MAYC_CAP * 7 + BAYC_CAP * 7
 
 def test_match_from_borrow_bakc(compounder, ape, bakc, nft_guy, coin_guy, matcher, ape_staking):
 	ape.mint(coin_guy, '200000 ether')
@@ -158,11 +160,11 @@ def test_match_from_borrow_bakc(compounder, ape, bakc, nft_guy, coin_guy, matche
 
 	liquid = compounder.liquid()
 	matcher.depositNfts([], [], [1,2,3,4,5], {'from':nft_guy})
-	(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(21)
-	assert (active, pri, pO, pT, dO, dT) == (True, 1, nft_guy, coin_guy, nft_guy, compounder)
+	(dogless, ids, pO, pT, dO, dT) = matcher.matches(21)
+	assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, coin_guy, nft_guy, compounder)
 	for i in range(4):
-		(active, pri, _, ids, pO, pT, dO, dT) = matcher.matches(i + 22)
-		assert (active, pri, pO, pT, dO, dT) == (True, 2, nft_guy, coin_guy, nft_guy, compounder)
+		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i + 22)
+		assert (dogless & 1, pO, pT, dO, dT) == (0, nft_guy, coin_guy, nft_guy, compounder)
 	assert compounder.debt() == BAKC_CAP * 5 + MAYC_CAP * 7 + BAYC_CAP * 7
 	assert liquid - compounder.liquid() == BAKC_CAP * 5
 	assert matcher.gammaSpentCounter() == 0
@@ -183,6 +185,7 @@ def test_repay_some(compounder, ape, bakc, nft_guy, coin_guy, matcher, ape_staki
 	assert matcher.payments(compounder) > 0
 	assert compounder.pricePerShare() > v_price
 	assert matcher.alphaSpentCounter() == 2
+	assert compounder.debt() == BAKC_CAP * 5 + MAYC_CAP * 2 + BAYC_CAP * 2
 
 def test_repay_some_smart(compounder, ape, bakc, nft_guy, coin_guy, matcher, ape_staking, admin, chain):
 	v_price = compounder.pricePerShare()

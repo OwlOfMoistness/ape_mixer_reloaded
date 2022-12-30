@@ -109,5 +109,5 @@ def test_revert_deposit_already_committed(matcher, bayc, ape, ape_staking, nft_g
 	ape.mint(nft_guy, '10094 ether')
 	ape.approve(ape_staking, 2 ** 256 - 2, {'from':nft_guy})
 	ape_staking.depositBAYC([(6, Wei('10094 ether'))], {'from':nft_guy})
-	with reverts('NFT already commited'):
+	with reverts('commited'):
 		matcher.depositNfts([6], [], [], {'from':nft_guy})
