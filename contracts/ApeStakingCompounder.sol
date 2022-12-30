@@ -140,11 +140,6 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
-	function withdrawApeToken(IApeMatcher.DepositWithdrawals[][] calldata _deposits) external {
-		MATCHER.withdrawApeToken(_deposits);
-		compound();
-	}
-
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
 		compound();

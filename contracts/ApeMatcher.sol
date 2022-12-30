@@ -142,17 +142,28 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _user User to deposit to
 	 */
 	function depositApeTokenForUser(uint32[3] calldata _depositAmounts, address _user) external override onlyOperator {
-		uint256 totalDeposit = 0;
 		uint256[3] memory depositValues = [ALPHA_SHARE, BETA_SHARE, GAMMA_SHARE];
-		for(uint256 i = 0; i < 3; i++) {
-			totalDeposit += depositValues[i] * uint256(_depositAmounts[i]);
-			if (_depositAmounts[i] > 0)
-				_handleDeposit(depositValues[i], _depositAmounts[i], _user);
-			// TODO emit event somehow
+		if (_user != address(vault)) {
+			uint256 totalDeposit = 0;
+			for(uint256 i = 0; i < 3; i++) {
+				totalDeposit += depositValues[i] * uint256(_depositAmounts[i]);
+				if (_depositAmounts[i] > 0)
+					_handleDeposit(depositValues[i], _depositAmounts[i], _user);
+				// TODO emit event somehow
+			}
+			APE.transferFrom(msg.sender, address(vault), totalDeposit);
+			vault.depositOnBehalf(totalDeposit, _user);
+			_mixExec();
 		}
-		APE.transferFrom(msg.sender, address(vault), totalDeposit);
-		vault.depositOnBehalf(totalDeposit, _user);
-		_mixExec();
+		else {
+			_handleApeTransfer(
+				_user,
+				_depositAmounts[0] * depositValues[0] +
+				_depositAmounts[1] * depositValues[1] + 
+				_depositAmounts[2] * depositValues[2],
+				false);
+
+		}
 	}
 
 	/**  
@@ -870,7 +881,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	function _handleSmartReturn(address _depositor, uint256 _share, address _user) internal {
 		if (_user != address(vault))
 			vault.withdrawExactAmountOnBehalf(_share, _depositor, _user);
-			else
+		else
 			vault.repay(_share);
 	}
 

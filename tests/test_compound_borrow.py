@@ -204,3 +204,4 @@ def test_repay_some_smart(compounder, ape, bakc, nft_guy, coin_guy, matcher, ape
 	assert debt - compounder.debt() == (BAYC_CAP + MAYC_CAP) * 2
 	assert compounder.liquid() - liquid > (BAYC_CAP + MAYC_CAP) * 2
 	assert matcher.payments(compounder) > 0
+	assert compounder.debt() == BAKC_CAP * 5
