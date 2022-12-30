@@ -39,6 +39,7 @@ contract ApeStakingCompounder is Ownable {
 
 	function borrow(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
+		// cannot borrow totalStaked to prevent transferring pending rewards to operator
 		require(_amount < liquid());
 
 		debt += _amount;
@@ -120,6 +121,8 @@ contract ApeStakingCompounder is Ownable {
 		totalSupply -= sharesToWithdraw;
 		userDebt[_user] -= _amount;
 		totalUserDebt -= _amount;
+		// must be checked as withdrawing the total amount staked results in also transfering the rewards to the recipient
+		// which needs to be the vault in our case
 		if (_amount == getStakedTotal()) {
 			APE_STAKING.withdrawApeCoin(_amount, address(this));
 			APE.transfer(_to, _amount);
