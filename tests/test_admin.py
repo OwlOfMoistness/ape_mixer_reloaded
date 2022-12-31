@@ -10,7 +10,7 @@ NULL = "0x0000000000000000000000000000000000000000"
 def test_revert_operator(matcher, admin):
 	assert matcher.smoothOperator() != NULL
 	with reverts():
-		matcher.setOperator(admin, {'from':admin})
+		matcher.init(admin, admin, {'from':admin})
 
 def test_exec_smooth(smooth, admin, bayc, mayc, bakc, ape):
 	with reverts('Cannot call any assets handled by this contract'):

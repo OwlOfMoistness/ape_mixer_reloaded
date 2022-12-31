@@ -89,25 +89,25 @@ def test_multi_withdraw(matcher, bayc, mayc, bakc, nft_guy, other_guy):
 def test_revert_deposit_someone_elses_assets(matcher, bayc, nft_guy, other_guy):
 	bayc.setApprovalForAll(matcher, True, {'from':other_guy})
 	bayc.mint(other_guy, 10)
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.depositNfts([11,12], [], [], {'from':nft_guy})
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.depositNfts([], [1], [], {'from':other_guy})
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.depositNfts([], [], [1], {'from':other_guy})
 
 def test_revert_withdraw_someone_elses_assets(matcher, bayc, nft_guy, other_guy):
 	matcher.depositNfts([1,2,3,4,5], [1,2,3,4,5], [1,2,3,4,5], {'from':nft_guy})
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.withdrawNfts([1,2,3,4,5], [1,2,3,4,5], [1,2,3,4,5], {'from':other_guy})
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.withdrawNfts([], [1,2,3,4,5], [1,2,3,4,5], {'from':other_guy})
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.withdrawNfts([], [], [1,2,3,4,5], {'from':other_guy})
 
 def test_revert_deposit_already_committed(matcher, bayc, ape, ape_staking, nft_guy, other_guy):
 	ape.mint(nft_guy, '10094 ether')
 	ape.approve(ape_staking, 2 ** 256 - 2, {'from':nft_guy})
 	ape_staking.depositBAYC([(6, Wei('10094 ether'))], {'from':nft_guy})
-	with reverts('commited'):
+	with reverts('commtd'):
 		matcher.depositNfts([6], [], [], {'from':nft_guy})

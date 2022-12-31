@@ -5,7 +5,7 @@ from brownie.test import given, strategy
 from brownie import Wei, reverts
 import csv
 import math
-115384615384615384615384
+
 NULL = "0x0000000000000000000000000000000000000000"
 BAYC_CAP = 10094000000000000000000
 MAYC_CAP = 2042000000000000000000

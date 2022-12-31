@@ -84,9 +84,8 @@ def compounder(ApeStakingCompounder, ape, ape_staking, admin):
 def matcher(ApeMatcher, SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, compounder, chain):
 	ma =  ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 	ope =  SmoothOperator.deploy(ma, bayc, mayc, bakc, ape, ape_staking,{'from':admin})
-	ma.setOperator(ope, {'from':admin})
+	ma.init(ope, compounder, {'from':admin})
 	ma.updateWeights([500,500,0,0],[100,100,400,400], {'from':admin})
-	ma.setVault(compounder, {'from':admin})
 	compounder.setMatcher(ma,{'from':admin})
 	compounder.setSmooth(ope,{'from':admin})
 	chain.sleep(86400)

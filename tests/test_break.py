@@ -28,7 +28,7 @@ def test_break_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.depositNfts([1], [], [], {'from':nft_guy})
 	matcher.depositApeToken([1,0,0], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 1
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchBreakMatch([0], [False], {'from':other_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
@@ -53,7 +53,7 @@ def test_break_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	assert math.isclose(matcher.payments(nft_guy) - pre_n, rewards // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy) - pre_c, rewards // 2 * 96 // 100)
 	assert bayc.ownerOf(1) == matcher
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.depositNfts([1], [], [], {'from':dog_guy})
 	assert ape.balanceOf(coin_guy) == '1000000 ether'
 	matcher.alphaCurrentTotalDeposits() == 0
@@ -65,7 +65,7 @@ def test_break_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	matcher.depositNfts([], [2], [], {'from':nft_guy})
 	matcher.depositApeToken([0,1,0], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 1
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchBreakMatch([2], [False], {'from':other_guy})
 	chain.sleep(7 * 86400 + 1)
 	chain.mine()
@@ -92,7 +92,7 @@ def test_break_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy, coin_guy
 	assert math.isclose(matcher.payments(nft_guy) - pre_n, rewards // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy) - pre_c, rewards // 2 * 96 // 100)
 	assert mayc.ownerOf(2) == matcher
-	with reverts('!owner'):
+	with reverts('!ownr'):
 		matcher.depositNfts([], [2], [], {'from':dog_guy})
 	assert ape.balanceOf(coin_guy) == '1000000 ether'
 	matcher.betaCurrentTotalDeposits() == 0

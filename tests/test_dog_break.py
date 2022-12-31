@@ -41,12 +41,10 @@ def test_break_dog_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy
 	assert ape.balanceOf(coin_guy) == pre_ape - BAYC_CAP - BAKC_CAP
 	(dogless, ids, pO, pT, dO, dT) = matcher.matches(0)
 	assert (dogless & 1, ids, pO, pT, dO, dT) == (1, (2 << 48) + 1, nft_guy, coin_guy, dog_guy, coin_guy)
-	with reverts('!dog match'):
-		matcher.batchBreakDogMatch([0], {'from':other_guy})
-	with reverts('!dog match'):
-		matcher.batchBreakDogMatch([0], {'from':nft_guy})
-	with reverts('!dog match'):
-		matcher.batchBreakDogMatch([1], {'from':nft_guy})
+	with reverts('!mtch'):
+		matcher.batchBreakMatch([0], [False], {'from':other_guy})
+	with reverts('!mtch'):
+		matcher.batchBreakMatch([1], [False], {'from':nft_guy})
 	assert matcher.gammaCurrentTotalDeposits() == 0
 	assert matcher.gammaDepositCounter() == 1
 	chain.sleep(86400)
@@ -54,7 +52,7 @@ def test_break_dog_match_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy
 	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, dog_guy, coin_guy)
 	reward = ape_staking.pendingRewards(3, smooth, 2)
 	assert reward > 0
-	matcher.batchBreakDogMatch([0], {'from':dog_guy})
+	matcher.batchBreakMatch([0], [False], {'from':dog_guy})
 	assert math.isclose(matcher.payments(nft_guy) - snap[0], reward * 1 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy) - snap[1], reward * 1 // 10 * 96 // 100 + reward * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(dog_guy) - snap[2], reward * 4 // 10 * 96 // 100)
@@ -85,16 +83,14 @@ def test_break_dog_match_mayc(matcher, ape, mayc, bakc, smooth, nft_guy, dog_guy
 	assert ape.balanceOf(coin_guy) == pre_ape - MAYC_CAP - BAKC_CAP
 	(dogless, ids, pO, pT, dO, dT) = matcher.matches(1)
 	assert (dogless & 1, ids, pO, pT, dO, dT) == (0, (3 << 48) + 2, nft_guy, coin_guy, dog_guy, coin_guy)
-	with reverts('!dog match'):
-		matcher.batchBreakDogMatch([1], {'from':other_guy})
-	with reverts('!dog match'):
-		matcher.batchBreakDogMatch([1], {'from':nft_guy})
+	with reverts('!mtch'):
+		matcher.batchBreakMatch([1], [False], {'from':other_guy})
 	chain.sleep(86400)
 	chain.mine()
 	snap = get_payment_snapshot(matcher, nft_guy, coin_guy, dog_guy, coin_guy)
 	reward = ape_staking.pendingRewards(3, smooth, 3)
 	assert reward > 0
-	matcher.batchBreakDogMatch([1], {'from':coin_guy})
+	matcher.batchBreakMatch([1], [False], {'from':coin_guy})
 	assert math.isclose(matcher.payments(nft_guy) - snap[0], reward * 1 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy) - snap[1], reward * 1 // 10 * 96 // 100 + reward * 4 // 10 * 96 // 100)
 	assert math.isclose(matcher.payments(dog_guy) - snap[2], reward * 4 // 10 * 96 // 100)
@@ -111,20 +107,20 @@ def test_combo_bind_break(matcher, ape, bayc, bakc, smooth, nft_guy, dog_guy, co
 	# matcher.depositNfts([], [], [2], {'from':dog_guy})
 	matcher.depositApeToken([0, 0, 1], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 0
-	matcher.batchBreakDogMatch([1], {'from':coin_guy})
+	matcher.batchBreakMatch([1], [False], {'from':coin_guy})
 	assert ape.balanceOf(coin_guy) == pre_ape
 	assert matcher.doglessMatchCounter() == 1
 	matcher.depositApeToken([0, 0, 1], {'from':coin_guy})
 	assert matcher.doglessMatchCounter() == 0
-	matcher.batchBreakDogMatch([1], {'from':dog_guy})
+	matcher.batchBreakMatch([1], [False], {'from':dog_guy})
 	assert matcher.doglessMatchCounter() == 1
 	matcher.depositNfts([], [], [3], {'from':dog_guy})
 	assert matcher.doglessMatchCounter() == 0
-	matcher.batchBreakDogMatch([1], {'from':dog_guy})
+	matcher.batchBreakMatch([1], [False], {'from':dog_guy})
 	assert matcher.doglessMatchCounter() == 1
 	matcher.depositNfts([], [], [3], {'from':dog_guy})
 	assert matcher.doglessMatchCounter() == 0
-	matcher.batchBreakDogMatch([1], {'from':dog_guy})
+	matcher.batchBreakMatch([1], [False], {'from':dog_guy})
 	assert bakc.ownerOf(3) == dog_guy
 	assert matcher.assetToUser(bakc, 3) == NULL
 	assert ape.balanceOf(coin_guy) == pre_ape - BAKC_CAP

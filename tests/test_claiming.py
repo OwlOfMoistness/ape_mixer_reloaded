@@ -79,7 +79,7 @@ def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_
 	chain.mine()
 	pre_nft = ape.balanceOf(dog_guy)
 	pre_smooth = ape.balanceOf(smooth)
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchClaimRewardsFromMatches([0], False, {'from':dog_guy})
 	matcher.batchClaimRewardsFromMatches([1], False, {'from':dog_guy})
 	assert math.isclose(matcher.payments(dog_guy), MAYC_DAILY_RATE // 2 * 96 // 100)
@@ -102,7 +102,7 @@ def test_claiming_bakc_all_unique(matcher, ape, bakc, smooth, mix_guy, dog_guy, 
 	ape.approve(matcher, 2 ** 256 - 1, {'from':some_guy})
 	bakc.mint(mix_guy, 10)
 	bakc.setApprovalForAll(matcher, True, {'from':mix_guy})
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchClaimRewardsFromMatches([0], False, {'from':some_guy})
 	matcher.depositNfts([], [], [1], {'from':mix_guy})
 	matcher.depositApeToken([0,0,1], {'from':some_guy})
@@ -123,22 +123,23 @@ def test_claiming_bakc_all_unique(matcher, ape, bakc, smooth, mix_guy, dog_guy, 
 	assert math.isclose(matcher.payments(other_guy) - other_payment, bakc_rewards * 1 // 10 * 96 // 100)
 	chain.sleep(86400)
 	chain.mine()
+	bakc_rewards_2 = ape_staking.pendingRewards(3, matcher, 1)
 	matcher.batchClaimRewardsFromMatches([1], True, {'from':mix_guy})
 	assert matcher.payments(mix_guy)== 0
-	assert math.isclose(ape.balanceOf(mix_guy), 2 * bakc_rewards * 4 // 10 * 96 // 100)
-	assert math.isclose(matcher.payments(some_guy), 2 * bakc_rewards * 4 // 10 * 96 // 100)
-	assert math.isclose(matcher.payments(dog_guy) - dog_payment, bakc_rewards * 2 // 10 * 96 // 100)
-	assert math.isclose(matcher.payments(other_guy) - other_payment, bakc_rewards * 2 // 10 * 96 // 100)
+	assert math.isclose(ape.balanceOf(mix_guy), (bakc_rewards + bakc_rewards_2) * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(some_guy), (bakc_rewards + bakc_rewards_2) * 4 // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(dog_guy) - dog_payment, (bakc_rewards + bakc_rewards_2) // 10 * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy) - other_payment, (bakc_rewards + bakc_rewards_2) // 10 * 96 // 100)
 
 	pre_dog = ape.balanceOf(dog_guy)
 	pre_other = ape.balanceOf(other_guy)
 	mayc_rewards = ape_staking.pendingRewards(2, matcher, 1)
 	matcher.batchClaimRewardsFromMatches([1], True, {'from':dog_guy})
 	assert matcher.payments(dog_guy)== 0
-	assert math.isclose(ape.balanceOf(dog_guy) - pre_dog, dog_payment + bakc_rewards * 2 // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
+	assert math.isclose(ape.balanceOf(dog_guy) - pre_dog, dog_payment + (bakc_rewards + bakc_rewards_2) // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
 	matcher.batchClaimRewardsFromMatches([1], True, {'from':other_guy})
 	assert matcher.payments(other_guy)== 0
-	assert math.isclose(ape.balanceOf(other_guy) - pre_other, other_payment + bakc_rewards * 2 // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
+	assert math.isclose(ape.balanceOf(other_guy) - pre_other, other_payment + (bakc_rewards + bakc_rewards_2) // 10 * 96 // 100 + (mayc_rewards // 2 * 96 // 100))
 	assert matcher.payments(mix_guy)== 0
 
 def test_claiming_no_fee_primary_bayc(matcher, ape, bayc, ape_staking, nft_guy, dog_guy, coin_guy, chain):
@@ -150,7 +151,7 @@ def test_claiming_no_fee_primary_bayc(matcher, ape, bayc, ape_staking, nft_guy, 
 	chain.sleep(86400)
 	chain.mine()
 	bayc_rewards = ape_staking.pendingRewards(1, matcher, 2)
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchClaimRewardsFromMatches([2], True, {'from':coin_guy})
 	matcher.batchClaimRewardsFromMatches([2], False, {'from':nft_guy})
 	assert math.isclose(matcher.payments(nft_guy), bayc_rewards)
@@ -172,7 +173,7 @@ def test_claiming_no_fee_primary_mayc(matcher, ape, mayc, ape_staking, nft_guy, 
 	chain.sleep(86400)
 	chain.mine()
 	mayc_rewards = ape_staking.pendingRewards(2, matcher, 12)
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchClaimRewardsFromMatches([3], True, {'from':coin_guy})
 	matcher.batchClaimRewardsFromMatches([3], False, {'from':nft_guy})
 	assert math.isclose(matcher.payments(nft_guy), mayc_rewards)

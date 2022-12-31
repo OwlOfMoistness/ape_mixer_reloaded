@@ -20,10 +20,16 @@ contract ApeStakingCompounder is Ownable {
 	mapping(address => uint256) public userDebt;
 	uint256 public totalUserDebt;
 
+	bool public stopBorrow;
+
 	constructor(address a, address b) {
 		APE_STAKING = IApeStaking(a);
 		APE = IERC20(b);
 		APE.approve(address(APE_STAKING), type(uint256).max);
+	}
+
+	function borrowSwitch() external onlyOwner {
+		stopBorrow = !stopBorrow;
 	}
 
 	function setSmooth(address _smooth) external onlyOwner {
@@ -39,6 +45,7 @@ contract ApeStakingCompounder is Ownable {
 
 	function borrow(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
+		require(!stopBorrow);
 		// cannot borrow totalStaked to prevent transferring pending rewards to operator
 		require(_amount < liquid());
 
@@ -145,11 +152,6 @@ contract ApeStakingCompounder is Ownable {
 
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external {
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
-		compound();
-	}
-
-	function batchBreakDogMatch(uint256[] calldata _matchIds) external {
-		MATCHER.batchBreakDogMatch(_matchIds);
 		compound();
 	}
 

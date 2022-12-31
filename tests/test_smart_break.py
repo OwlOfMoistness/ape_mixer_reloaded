@@ -53,7 +53,7 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':nft_guy})
 	with reverts('!alpha'):
 		matcher.batchSmartBreakMatch([0], [[False, True, False, False]], {'from':coin_guy})
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':other_guy})
 	matcher.depositNfts([11], [], [], {'from':dog_guy})
 	chain.sleep(86400)
@@ -111,7 +111,7 @@ def test_break_match_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, coin_guy
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':nft_guy})
 	with reverts('!beta'):
 		matcher.batchSmartBreakMatch([1], [[False, True, False, False]], {'from':coin_guy})
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':other_guy})
 	matcher.depositNfts([], [11], [], {'from':dog_guy})
 	chain.sleep(86400)
@@ -162,7 +162,7 @@ def test_break_match_bakc_on_mayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 		matcher.batchSmartBreakMatch([1], [[False, False, True, False]], {'from':dog_guy})
 	with reverts('!dog dep'):
 		matcher.batchSmartBreakMatch([1], [[False, False, False, True]], {'from':coin_guy})
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchSmartBreakMatch([1], [[True, False, False, False]], {'from':accounts[9]})
 	matcher.depositNfts([], [], [13], {'from':some_guy})
 	chain.sleep(86400)
@@ -204,7 +204,7 @@ def test_break_match_bakc_on_bayc(matcher, ape, bayc, bakc, smooth, nft_guy, dog
 		matcher.batchSmartBreakMatch([0], [[False, False, True, False]], {'from':dog_guy})
 	with reverts('!dog dep'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, True]], {'from':coin_guy})
-	with reverts('!match'):
+	with reverts('!mtch'):
 		matcher.batchSmartBreakMatch([0], [[True, False, False, False]], {'from':accounts[9]})
 	matcher.depositNfts([], [], [18], {'from':some_guy})
 	chain.sleep(86400)

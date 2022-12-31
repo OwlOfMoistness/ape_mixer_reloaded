@@ -12,7 +12,7 @@ BAKC_CAP = 856000000000000000000
 
 def test_deposit_one_type(matcher, ape, nft_guy, smooth, ape_staking, compounder):
 	with reverts('!sm'):
-		matcher.depositApeTokenForUser([10,10,10], nft_guy, {'from':nft_guy})
+		matcher.depositApeTokenForUser(0, nft_guy, {'from':nft_guy})
 	pre = ape.balanceOf(ape_staking)
 	ape.mint(nft_guy, '10_000_000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':nft_guy})
@@ -148,20 +148,20 @@ def test_withdraw_many(matcher, ape, nft_guy, smooth, ape_staking, compounder):
 	assert compounder.balanceOf(nft_guy) == 0
 
 def test_revert_outside_index(matcher, ape, nft_guy):
-	with reverts('!exist'):
+	with reverts('!exst'):
 		matcher.withdrawApeToken([[(1, 0)] ,[], []], {'from':nft_guy})
-	with reverts('!exist'):
+	with reverts('!exst'):
 		matcher.withdrawApeToken([[], [(1, 0)], []], {'from':nft_guy})
-	with reverts('!exist'):
+	with reverts('!exst'):
 		matcher.withdrawApeToken([[] , [], [(1, 0)]], {'from':nft_guy})
 
 def test_revert_withdraw_not_owned_deposit(matcher, ape, nft_guy, other_guy):
 	matcher.depositApeToken([2, 2, 2], {'from':nft_guy})
-	with reverts('!owner dep'):
+	with reverts('!ownr dep'):
 		matcher.withdrawApeToken([[(0, 2)] ,[], []],{'from':other_guy})
-	with reverts('!owner dep'):
+	with reverts('!ownr dep'):
 		matcher.withdrawApeToken([[] ,[(0, 2)], []], {'from':other_guy})
-	with reverts('!owner dep'):
+	with reverts('!ownr dep'):
 		matcher.withdrawApeToken([[] ,[], [(0, 2)]], {'from':other_guy})
 	matcher.withdrawApeToken([[(0, 2)] ,[(0, 2)], [(0, 2)]], {'from':nft_guy})
 
@@ -222,11 +222,11 @@ def test_revert_large_amount(matcher, ape, nft_guy, other_guy):
 	assert matcher.betaDepositCounter() == 1
 	assert matcher.gammaCurrentTotalDeposits() == 2
 	assert matcher.gammaDepositCounter() == 1
-	with reverts('!amount'):
+	with reverts('!amt'):
 		matcher.withdrawApeToken([[(0, 3)] ,[], []],{'from':nft_guy})
-	with reverts('!amount'):
+	with reverts('!amt'):
 		matcher.withdrawApeToken([[] ,[(0, 3)], []], {'from':nft_guy})
-	with reverts('!amount'):
+	with reverts('!amt'):
 		matcher.withdrawApeToken([[] ,[], [(0, 3)]], {'from':nft_guy})
 	matcher.withdrawApeToken([[(0, 2)], [(0, 2)], [(0, 2)]], {'from':nft_guy})
 	assert matcher.alphaCurrentTotalDeposits() == 0

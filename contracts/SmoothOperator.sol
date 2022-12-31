@@ -255,7 +255,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		if (_tokenOwner == _caller)
 			toReturn = GAMMA_SHARE;
 		else
-			IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _tokenOwner);
+			IApeMatcher(manager).depositApeTokenForUser(2, _tokenOwner);
 	}
 
 	/**
@@ -285,7 +285,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			if (_match.doggoTokensOwner == _caller)
 				toReturn += GAMMA_SHARE;
 			else
-				IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _match.doggoTokensOwner);
+				IApeMatcher(manager).depositApeTokenForUser(2, _match.doggoTokensOwner);
 		}
 		pre = APE.balanceOf(address(this));
 		if (primary == ALPHA)
@@ -298,7 +298,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			toReturn += primaryShare;
 		else
 			IApeMatcher(manager).depositApeTokenForUser(
-				primary == ALPHA ? [uint32(1), 0, 0] : [0, uint32(1), 0],
+				primary == ALPHA ? 0 : 1,
 				_match.primaryTokensOwner);
 	}
 
