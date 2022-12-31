@@ -140,7 +140,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				_alphaIds.length * ALPHA_SHARE  + _betaIds.length * BETA_SHARE);
 			_matchSelf(ALPHA, _alphaIds, 1, msg.sender);
 			_matchSelf(BETA, _betaIds, 0, msg.sender);
-
 	}
 
 	/**  
@@ -228,13 +227,16 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _matchIds Array of match IDs a user is involved with 
 	 * @param _claim Boolean to set if the users withdraws rewards now or not
 	 */
-	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, bool _claim) external {
+	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, uint256 _claim) external {
 		uint256 _fee;
 		for (uint256 i = 0 ; i < _matchIds.length; i++)
 			_fee += _claimRewardsFromMatch(_matchIds[i]);
 		_handleFeeAndReturn(_fee, address(0), 0, true);
-		if (_claim)
-			_claimTokens(msg.sender);
+		if (_claim > 0) {
+			uint256 totalApe = _claimTokens(msg.sender);
+			if (_claim > 1)
+				vault.permissionnedDepositFor(totalApe, msg.sender);
+		}
 	}
 
 	/**  
@@ -279,8 +281,8 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * Internal function that claims tokens for a user
 	 * @param _user User to send rewards to
 	 */
-	function _claimTokens(address _user) internal {
-		uint256 rewards = payments[_user];
+	function _claimTokens(address _user) internal returns (uint256 rewards) {
+		rewards = payments[_user];
 		if (rewards > 0) {
 			payments[_user] = 0;
 			APE.transferFrom(address(smoothOperator) ,_user, rewards);

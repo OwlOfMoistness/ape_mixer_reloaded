@@ -94,6 +94,16 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
+	function permissionnedDepositFor(uint256 _amount, address _user) public {
+		require(msg.sender == address(MATCHER));
+		uint256 shares = _amount * 1e18 / pricePerShare();
+
+		balanceOf[_user] += shares;
+		totalSupply += shares;
+		APE.transferFrom(_user, address(this), _amount);
+		compound();
+	}
+
 	function depositOnBehalf(uint256 _amount, address _user) external {
 		require(msg.sender == address(MATCHER));
 		uint256 shares = _amount * 1e18 / pricePerShareBehalf(_amount);
@@ -146,7 +156,7 @@ contract ApeStakingCompounder is Ownable {
 	}
 
 	function claimNftStaking(uint256[] calldata _matchIds) external {
-		MATCHER.batchClaimRewardsFromMatches(_matchIds, true);
+		MATCHER.batchClaimRewardsFromMatches(_matchIds, 1);
 		compound();
 	}
 

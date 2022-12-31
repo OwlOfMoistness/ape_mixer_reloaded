@@ -30,7 +30,7 @@ interface IApeMatcher {
 	}
 
 	function depositApeTokenForUser(uint256 _type, address _user) external;
-	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, bool _claim) external;
+	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, uint256 _claim) external;
 	function withdrawApeToken(DepositWithdrawals[][] calldata _deposits) external;
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external;
 	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external;
