@@ -18,7 +18,7 @@ BAYC_DAILY_RATE =   16486750000000000000000000 // (MAYC_Q1 // 86400)
 MAYC_DAILY_RATE = 6671000000000000000000000 // (MAYC_Q1 // 86400)
 BAKC_DAILY_RATE = 1342250000000000000000000 // (BAKC_Q1 // 86400)
 
-def test_match_from_borrow_bayc(compounder, ape, bayc, bakc, nft_guy, coin_guy, matcher, ape_staking, dog_guy):
+def test_match_from_borrow_bayc(compounder, ape, bayc, bakc, nft_guy, coin_guy, matcher, ape_staking, dog_guy, admin):
 	ape.mint(coin_guy, '200000 ether')
 	ape.approve(compounder, 2**256 - 1, {'from':coin_guy})
 	ape.transfer(compounder, '100000 ether', {'from':coin_guy})
@@ -40,7 +40,7 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, bakc, nft_guy, coin_guy, 
 		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, dog_guy, compounder)
 	assert compounder.debt() == BAKC_CAP * 5 + BAYC_CAP * 5
 
-	compounder.batchBreakMatch([0,1,2,3,4], [False]*5, {'from':coin_guy})
+	compounder.batchBreakMatch([0,1,2,3,4], [False]*5, {'from':admin})
 	for i in range(5):
 		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
 		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
@@ -48,7 +48,7 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, bakc, nft_guy, coin_guy, 
 	for i in range(5):
 		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
 		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, dog_guy, compounder)
-	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':coin_guy})
+	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':admin})
 	for i in range(5):
 		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
 		assert (dogless & 1, pO, pT, dO, dT) == (0, NULL, NULL, NULL, NULL)

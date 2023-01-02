@@ -18,7 +18,7 @@ BAYC_DAILY_RATE =   16486750000000000000000000 // (MAYC_Q1 // 86400)
 MAYC_DAILY_RATE = 6671000000000000000000000 // (MAYC_Q1 // 86400)
 BAKC_DAILY_RATE = 1342250000000000000000000 // (BAKC_Q1 // 86400)
 
-def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_staking):
+def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_staking, admin):
 	ape.mint(coin_guy, '200000 ether')
 	ape.approve(compounder, 2**256 - 1, {'from':coin_guy})
 	ape.transfer(compounder, '100000 ether', {'from':coin_guy})
@@ -38,7 +38,7 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matche
 	assert compounder.getStakedTotal() == 0
 	assert compounder.pricePerShare() == price
 	assert compounder.debt() == BAYC_CAP * 5
-	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':coin_guy})
+	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':admin})
 	compounder.withdraw({'from':coin_guy})
 	assert ape.balanceOf(coin_guy) == Wei('200000 ether')
 	assert compounder.getStakedTotal() == 0

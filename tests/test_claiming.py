@@ -68,7 +68,7 @@ def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_g
 	assert math.isclose(ape.balanceOf(coin_guy) - pre_coin, BAYC_DAILY_RATE * 96 // 100)
 	assert math.isclose(ape.balanceOf(smooth) - matcher.fee() - pre_smooth, BAYC_DAILY_RATE * 96 // 100 )
 
-def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_guy, coin_guy,chain):
+def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_guy, coin_guy,chain, ape_staking):
 	ape.mint(other_guy, '1000000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':other_guy})
 	mayc.mint(dog_guy, 10)
@@ -79,20 +79,22 @@ def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_
 	chain.mine()
 	pre_nft = ape.balanceOf(dog_guy)
 	pre_smooth = ape.balanceOf(smooth)
+	mayc_rewards =  ape_staking.pendingRewards(2, matcher, 1)
 	with reverts('!mtch'):
 		matcher.batchClaimRewardsFromMatches([0], 0, {'from':dog_guy})
 	matcher.batchClaimRewardsFromMatches([1], 0, {'from':dog_guy})
-	assert math.isclose(matcher.payments(dog_guy), MAYC_DAILY_RATE // 2 * 96 // 100)
-	assert math.isclose(matcher.payments(other_guy), MAYC_DAILY_RATE // 2 * 96 // 100)
-	assert math.isclose(ape.balanceOf(smooth) - pre_smooth, MAYC_DAILY_RATE)
+	assert math.isclose(matcher.payments(dog_guy), mayc_rewards // 2 * 96 // 100)
+	assert math.isclose(matcher.payments(other_guy), mayc_rewards // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(smooth) - pre_smooth, mayc_rewards)
 	chain.sleep(86400)
 	chain.mine()
+	mayc_rewards_2 =  ape_staking.pendingRewards(2, matcher, 1)
 	pre_coin = ape.balanceOf(other_guy)
 	matcher.batchClaimRewardsFromMatches([1], 1, {'from':other_guy})
-	assert math.isclose(matcher.payments(dog_guy), MAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(matcher.payments(dog_guy), (mayc_rewards + mayc_rewards_2) // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(other_guy), 0)
-	assert math.isclose(ape.balanceOf(other_guy) - pre_coin, MAYC_DAILY_RATE * 96 // 100)
-	assert math.isclose(ape.balanceOf(smooth) - pre_smooth , MAYC_DAILY_RATE * 104 // 100)
+	assert math.isclose(ape.balanceOf(other_guy) - pre_coin, (mayc_rewards + mayc_rewards_2) // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(smooth) - pre_smooth , (mayc_rewards + mayc_rewards_2) // 2 * 104 // 100)
 
 	assert ape.balanceOf(smooth) - matcher.fee() == matcher.payments(dog_guy) + matcher.payments(other_guy) + matcher.payments(nft_guy) + matcher.payments(coin_guy)
 

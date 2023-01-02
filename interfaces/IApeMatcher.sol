@@ -29,6 +29,10 @@ interface IApeMatcher {
 		bool gamma;
 	}
 
+	function depositNfts(
+		uint256[] calldata _alphaIds,
+		uint256[] calldata _betaIds,
+		uint256[] calldata _gammaIds) external;
 	function depositApeTokenForUser(uint256 _type, address _user) external;
 	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, uint256 _claim) external;
 	function withdrawApeToken(DepositWithdrawals[][] calldata _deposits) external;

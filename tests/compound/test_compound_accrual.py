@@ -63,12 +63,12 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matche
 		assert compounder.pricePerShare() >= pre
 		pre = compounder.pricePerShare()
 	
-def test_withdraw_all(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_staking, chain, accounts):
+def test_withdraw_all(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_staking, chain, accounts, admin):
 	with reverts('typed error: 0x9acaefc7'):
 		for acc in accounts:
 			compounder.withdraw({'from':acc})
 			assert compounder.balanceOf(acc) == 0
-	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':coin_guy})
+	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':admin})
 	for acc in accounts:
 		if compounder.balanceOf(acc) > 0:
 			compounder.withdraw({'from':acc})

@@ -821,7 +821,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 			require (pos.stakedAmount == 0, "commtd");
 			require(_nft.ownerOf(_tokenIds[i]) == _user, "!ownr");
 			// EmperorTomatoKetchup, you can't use your #0
-			if (_nft == GAMMA && _tokenIds[i] == 0) revert();
+			if (poolId == 3 && _tokenIds[i] == 0) revert();
 			assetToUser[address(_nft)][_tokenIds[i]] = _user;
 			_nft.transferFrom(_user, address(this), _tokenIds[i]);
 		}
