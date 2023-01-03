@@ -63,6 +63,7 @@ def test_deposit_and_withdraw_all_1_day(compounder, ape, coin_guy, matcher, ape_
 
 def test_deposit_and_withdraw_many_all_1_day(compounder, ape, coin_guy, matcher, ape_staking, chain, accounts):
 	i = 0
+	acc_len = len(accounts)
 	for acc in accounts:
 		i += 1
 		ape.mint(acc, '100000 ether')
@@ -79,7 +80,7 @@ def test_deposit_and_withdraw_many_all_1_day(compounder, ape, coin_guy, matcher,
 	pre = ape.balanceOf(coin_guy)
 	compounder.withdraw({'from':coin_guy})
 	profit = ape.balanceOf(coin_guy) - pre - Wei('10000 ether')
-	assert math.isclose(profit, reward // 30)
+	assert math.isclose(profit, reward // acc_len)
 	assert compounder.balanceOf(coin_guy) == 0
 	assert compounder.totalSupply() == Wei('10000 ether') * (len(accounts) - 1)
 	assert compounder.pricePerShare() > '1 ether'

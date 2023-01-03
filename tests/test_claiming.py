@@ -41,7 +41,7 @@ def assert_expected_payment(matcher, p1, p2, rewards, s):
 	assert math.isclose(matcher.payments(p1) - s[0], rewards // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(p2) - s[1], rewards // 2 * 96 // 100)
 
-def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy, chain):
+def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy, chain, ape_staking):
 	ape.mint(coin_guy, '1000000 ether')
 	ape.approve(matcher, 2 ** 256 - 1, {'from':coin_guy})
 	bayc.mint(nft_guy, 10)
@@ -53,20 +53,22 @@ def test_claiming_from_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_g
 	chain.mine()
 	chain.sleep(86400)
 	chain.mine()
+	bayc_rewards =  ape_staking.pendingRewards(1, matcher, 1)
 	pre_nft = ape.balanceOf(nft_guy)
 	pre_smooth = ape.balanceOf(smooth)
 	matcher.batchClaimRewardsFromMatches([0], 0, {'from':nft_guy})
-	assert math.isclose(matcher.payments(nft_guy), BAYC_DAILY_RATE // 2 * 96 // 100)
-	assert math.isclose(matcher.payments(coin_guy), BAYC_DAILY_RATE // 2 * 96 // 100)
-	assert math.isclose(ape.balanceOf(smooth) - pre_smooth, BAYC_DAILY_RATE)
+	assert math.isclose(matcher.payments(nft_guy), bayc_rewards // 2 * 96 // 100)
+	assert math.isclose(matcher.payments(coin_guy), bayc_rewards // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(smooth) - pre_smooth, bayc_rewards)
 	chain.sleep(86400)
 	chain.mine()
+	bayc_rewards_2 =  ape_staking.pendingRewards(1, matcher, 1)
 	pre_coin = ape.balanceOf(coin_guy)
 	matcher.batchClaimRewardsFromMatches([0], 1, {'from':coin_guy})
-	assert math.isclose(matcher.payments(nft_guy), BAYC_DAILY_RATE * 96 // 100)
+	assert math.isclose(matcher.payments(nft_guy), (bayc_rewards + bayc_rewards_2) // 2 * 96 // 100)
 	assert math.isclose(matcher.payments(coin_guy), 0)
-	assert math.isclose(ape.balanceOf(coin_guy) - pre_coin, BAYC_DAILY_RATE * 96 // 100)
-	assert math.isclose(ape.balanceOf(smooth) - matcher.fee() - pre_smooth, BAYC_DAILY_RATE * 96 // 100 )
+	assert math.isclose(ape.balanceOf(coin_guy) - pre_coin, (bayc_rewards + bayc_rewards_2) // 2 * 96 // 100)
+	assert math.isclose(ape.balanceOf(smooth) - matcher.fee() - pre_smooth, (bayc_rewards + bayc_rewards_2) // 2 * 96 // 100 )
 
 def test_claiming_from_mayc(matcher, ape, mayc, smooth, nft_guy, dog_guy, other_guy, coin_guy,chain, ape_staking):
 	ape.mint(other_guy, '1000000 ether')
