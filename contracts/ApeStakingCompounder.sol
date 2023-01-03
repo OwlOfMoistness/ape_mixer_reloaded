@@ -26,6 +26,7 @@ contract ApeStakingCompounder is Ownable {
 	uint256 public totalUserDebt;
 
 	bool public stopBorrow;
+	bool public stopCoverFee;
 
 	constructor(address a, address b) {
 		APE_STAKING = IApeStaking(a);
@@ -45,6 +46,10 @@ contract ApeStakingCompounder is Ownable {
 
 	function borrowSwitch() external onlyOwner {
 		stopBorrow = !stopBorrow;
+	}
+
+	function coverSwitch() external onlyOwner {
+		stopCoverFee = !stopCoverFee;
 	}
 
 	function setSmooth(address _smooth) external onlyOwner {
@@ -181,7 +186,7 @@ contract ApeStakingCompounder is Ownable {
 		// Prevent rugging claim, you shouldnt claim if high fees
 		if (gasPrice > 80 gwei)
 			gasPrice = 80 gwei;
-		uint256 usdSpent = _gas * tx.gasprice * uint256(ethPrice); 
+		uint256 usdSpent = _gas * gasPrice * uint256(ethPrice); 
 
 		return usdSpent / uint256(apePrice);
 	}
@@ -190,7 +195,8 @@ contract ApeStakingCompounder is Ownable {
 		uint256 gas = gasleft();
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
 		gas = gas - gasleft();
-		//APE.transfer(msg.sender, calculateApeToRecover(gas));
+		// if (!stopCoverFee)
+		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
 	}
 
@@ -198,7 +204,8 @@ contract ApeStakingCompounder is Ownable {
 		uint256 gas = gasleft();
 		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
 		gas = gas - gasleft();
-		//APE.transfer(msg.sender, calculateApeToRecover(gas));
+		// if (!stopCoverFee)
+		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
 	}
 
@@ -207,7 +214,8 @@ contract ApeStakingCompounder is Ownable {
 		uint256[] memory zero = new uint256[](0);
 		MATCHER.depositNfts(zero, zero, zero);
 		gas = gas - gasleft();
-		//APE.transfer(msg.sender, calculateApeToRecover(gas));
+		// if (!stopCoverFee)
+		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
 	}
 }
