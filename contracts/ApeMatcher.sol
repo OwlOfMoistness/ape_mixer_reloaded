@@ -477,7 +477,6 @@ contract ApeMatcher is Pausable, IApeMatcher {
 					_fee += splits[i] * FEE / DENOMINATOR;
 					payments[_adds[i]] += splits[i] - (splits[i] * FEE / DENOMINATOR);
 				}
-					
 			}
 	}
 

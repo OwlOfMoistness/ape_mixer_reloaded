@@ -317,7 +317,8 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				_target != address(BETA) &&
 				_target != address(GAMMA) &&
 				_target != address(APE) &&
-				_target != address(APE_STAKING), "Cannot call any assets handled by this contract");
+				_target != address(APE_STAKING) &&
+				_target != address(manager), "Cannot call any assets handled by this contract");
 		(bool success,) = _target.call{value:msg.value}(_data);
 		require(success);
 	}
