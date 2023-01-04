@@ -74,7 +74,7 @@ def test_withdraw_all(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_sta
 			compounder.withdraw({'from':acc})
 		assert compounder.balanceOf(acc) == 0
 	assert compounder.debt() == 0
-	assert compounder.totalUserDebt() == 0
+	assert compounder.totalFundsLocked() == 0
 	assert compounder.totalSupply() == 0
 	assert compounder.liquid() <= '0.00001 ether'
 	assert compounder.pricePerShare() == '1 ether'

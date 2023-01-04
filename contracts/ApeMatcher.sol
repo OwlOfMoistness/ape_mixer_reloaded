@@ -866,7 +866,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		if (_user != address(vault))
 			vault.withdrawExactAmountOnBehalf(_share, _depositor, _user);
 		else
-			vault.repay(_share);
+			vault.repayAndWithdrawOnBehalf(_share, _depositor);
 	}
 
 	function _min(uint256 _a, uint256 _b) internal pure returns (uint256) {

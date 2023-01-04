@@ -22,8 +22,8 @@ contract ApeStakingCompounder is Ownable {
 	uint256 public totalSupply;
 	mapping(address => uint256) public balanceOf;
 	uint256 public debt;
-	mapping(address => uint256) public userDebt;
-	uint256 public totalUserDebt;
+	mapping(address => uint256) public fundsLocked;
+	uint256 public totalFundsLocked;
 
 	bool public stopBorrow;
 	bool public stopCoverFee;
@@ -78,6 +78,18 @@ contract ApeStakingCompounder is Ownable {
 		debt -= _amount;
 	}
 
+	function repayAndWithdrawOnBehalf(uint256 _amount, address _user) external {
+		require(msg.sender == address(MATCHER));
+		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
+
+		debt -= _amount;
+
+		balanceOf[_user] -= sharesToWithdraw;
+		totalSupply -= sharesToWithdraw;
+		fundsLocked[_user] -= _amount;
+		totalFundsLocked -= _amount;
+	}
+
 	function getStakedTotal() public view returns(uint256) {
 		uint256 val;
 		(val,) = APE_STAKING.addressPosition(address(this));
@@ -85,7 +97,7 @@ contract ApeStakingCompounder is Ownable {
 	}
 
 	function liquid() public view returns(uint256) {
-		return getStakedTotal() - totalUserDebt;
+		return getStakedTotal() - totalFundsLocked;
 	}
 
 	function pricePerShare() public view returns(uint256) {
@@ -120,8 +132,8 @@ contract ApeStakingCompounder is Ownable {
 
 		balanceOf[_user] += shares;
 		totalSupply += shares;
-		userDebt[_user] += _amount;
-		totalUserDebt += _amount;
+		fundsLocked[_user] += _amount;
+		totalFundsLocked += _amount;
 		compound();
 	}
 
@@ -141,7 +153,7 @@ contract ApeStakingCompounder is Ownable {
 	function withdraw(uint256 _shares) public {
 		uint256 value = _shares * pricePerShare() / 1e18;
 		uint256 totalValue = balanceOf[msg.sender] * pricePerShare() / 1e18;
-		require(totalValue - value >= userDebt[msg.sender]);
+		require(totalValue - value >= fundsLocked[msg.sender]);
 
 		balanceOf[msg.sender] -= _shares;
 		totalSupply -= _shares;
@@ -155,8 +167,8 @@ contract ApeStakingCompounder is Ownable {
 
 		balanceOf[_user] -= sharesToWithdraw;
 		totalSupply -= sharesToWithdraw;
-		userDebt[_user] -= _amount;
-		totalUserDebt -= _amount;
+		fundsLocked[_user] -= _amount;
+		totalFundsLocked -= _amount;
 		// must be checked as withdrawing the total amount staked results in also transfering the rewards to the recipient
 		// which needs to be the vault in our case
 		if (_amount == getStakedTotal()) {
@@ -191,18 +203,18 @@ contract ApeStakingCompounder is Ownable {
 		return usdSpent / uint256(apePrice);
 	}
 
-	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {
+	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external{
 		uint256 gas = gasleft();
-		MATCHER.batchBreakMatch(_matchIds, _breakAll);
+		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
 		gas = gas - gasleft();
 		// if (!stopCoverFee)
 		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
 	}
 
-	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external onlyKeepers(msg.sender) {
+	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
-		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
+		MATCHER.batchBreakMatch(_matchIds, _breakAll);
 		gas = gas - gasleft();
 		// if (!stopCoverFee)
 		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));

@@ -73,10 +73,10 @@ def test_break_match_bayc(matcher, ape, bayc, smooth, nft_guy, dog_guy, coin_guy
 	assert reward > 0
 	assert matcher.alphaCurrentTotalDeposits() == 0
 	matcher.depositApeToken([1,0,0], {'from':other_guy})
-	assert compounder.userDebt(other_guy) == BAYC_CAP
+	assert compounder.fundsLocked(other_guy) == BAYC_CAP
 	assert matcher.alphaCurrentTotalDeposits() == 1
 	matcher.batchSmartBreakMatch([0], [[False, True, False, False]], {'from':coin_guy})
-	assert compounder.userDebt(other_guy) == 0
+	assert compounder.fundsLocked(other_guy) == 0
 	assert matcher.alphaCurrentTotalDeposits() == 0
 	assert_expected_payment(matcher, dog_guy, coin_guy, reward, snap)
 	assert ape.balanceOf(coin_guy) == '1000000 ether'
