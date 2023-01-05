@@ -33,6 +33,7 @@ contract ApeStakingCompounder is Ownable {
 		APE = IERC20(b);
 		APE.approve(address(APE_STAKING), type(uint256).max);
 		keepers[msg.sender] = true;
+		stopCoverFee = true;
 	}
 
 	modifier onlyKeepers(address _keeper) {
@@ -203,22 +204,28 @@ contract ApeStakingCompounder is Ownable {
 		return usdSpent / uint256(apePrice);
 	}
 
-	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external{
+	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
 		gas = gas - gasleft();
-		// if (!stopCoverFee)
-		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
+		if (!stopCoverFee) {
+			uint256 toRecover = calculateApeToRecover(gas);
+			require(toRecover < getStakedTotal());
+			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
+		}
 	}
 
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
 		gas = gas - gasleft();
-		// if (!stopCoverFee)
-		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
+		if (!stopCoverFee) {
+			uint256 toRecover = calculateApeToRecover(gas);
+			require(toRecover < getStakedTotal());
+			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
+		}
 	}
 
 	function makeMatches() external onlyKeepers(msg.sender) {
@@ -226,8 +233,11 @@ contract ApeStakingCompounder is Ownable {
 		uint256[] memory zero = new uint256[](0);
 		MATCHER.depositNfts(zero, zero, zero);
 		gas = gas - gasleft();
-		// if (!stopCoverFee)
-		// 	APE.transfer(msg.sender, calculateApeToRecover(gas));
 		compound();
+		if (!stopCoverFee) {
+			uint256 toRecover = calculateApeToRecover(gas);
+			require(toRecover < getStakedTotal());
+			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
+		}
 	}
 }
