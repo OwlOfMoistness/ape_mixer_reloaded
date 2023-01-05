@@ -10,7 +10,7 @@ NULL = "0x0000000000000000000000000000000000000000"
 def test_revert_operator(matcher, admin):
 	assert matcher.smoothOperator() != NULL
 	with reverts():
-		matcher.setOperator(admin, {'from':admin})
+		matcher.init(admin, admin, {'from':admin})
 
 def test_exec_smooth(smooth, admin, bayc, mayc, bakc, ape):
 	with reverts('Cannot call any assets handled by this contract'):
@@ -52,4 +52,4 @@ def test_smooth_access(smooth, dog_guy):
 	with reverts("Smooth: Can't toucht this"):
 		smooth.unbindDoggoFromExistingPrimary(NULL,0,0,NULL,NULL,NULL, {'from':dog_guy})
 	with reverts("Smooth: Can't toucht this"):
-		smooth.uncommitNFTs((False,0,0,0,0,NULL,NULL,NULL,NULL),NULL, {'from':dog_guy})
+		smooth.uncommitNFTs((0,0,NULL,NULL,NULL,NULL),NULL, {'from':dog_guy})

@@ -49,6 +49,16 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 
 	/**
 	 * @notice
+	 * Function that stakes coins to the vault
+	 * @param _vault Contract address of the compound vault
+	 * @param _amountToReturn Amount to return
+	 */
+	function repayDebt(address _vault, uint256 _amountToReturn) external onlyManager {
+		APE_STAKING.depositApeCoin(_amountToReturn, _vault);
+	}
+
+	/**
+	 * @notice
 	 * Function that swaps a primary asset from a match
 	 * @param _primary Contract address of the primary asset
 	 * @param _in New asset ID to be swapped in
@@ -245,7 +255,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		if (_tokenOwner == _caller)
 			toReturn = GAMMA_SHARE;
 		else
-			IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _tokenOwner);
+			IApeMatcher(manager).depositApeTokenForUser(2, _tokenOwner);
 	}
 
 	/**
@@ -255,7 +265,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 	 * @param _caller Address that initiated the execution
 	 */
 	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external onlyManager returns(uint256 totalPrimary, uint256 totalGamma, uint256 toReturn) {
-		IERC721Enumerable primary = _match.primary == 1 ? ALPHA : BETA;
+		IERC721Enumerable primary = _match.doglessIndex & 1 == 1 ? ALPHA : BETA;
 		uint256 tokenId = uint256(_match.ids & (2**48 - 1));
 		uint256 gammaId = uint256(_match.ids >> 48);
 		uint256 primaryShare = primary == ALPHA ? ALPHA_SHARE : BETA_SHARE;
@@ -275,7 +285,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			if (_match.doggoTokensOwner == _caller)
 				toReturn += GAMMA_SHARE;
 			else
-				IApeMatcher(manager).depositApeTokenForUser([0, 0, uint32(1)], _match.doggoTokensOwner);
+				IApeMatcher(manager).depositApeTokenForUser(2, _match.doggoTokensOwner);
 		}
 		pre = APE.balanceOf(address(this));
 		if (primary == ALPHA)
@@ -288,7 +298,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			toReturn += primaryShare;
 		else
 			IApeMatcher(manager).depositApeTokenForUser(
-				primary == ALPHA ? [uint32(1), 0, 0] : [0, uint32(1), 0],
+				primary == ALPHA ? 0 : 1,
 				_match.primaryTokensOwner);
 	}
 
@@ -307,7 +317,8 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				_target != address(BETA) &&
 				_target != address(GAMMA) &&
 				_target != address(APE) &&
-				_target != address(APE_STAKING), "Cannot call any assets handled by this contract");
+				_target != address(APE_STAKING) &&
+				_target != address(manager), "Cannot call any assets handled by this contract");
 		(bool success,) = _target.call{value:msg.value}(_data);
 		require(success);
 	}

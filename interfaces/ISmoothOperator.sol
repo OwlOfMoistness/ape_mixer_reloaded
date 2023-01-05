@@ -33,5 +33,5 @@ interface ISmoothOperator {
 		address _tokenOwner,
 		address _caller) external returns(uint256 totalGamma, uint256 toReturn);
 
-	
+	function repayDebt(address _vault, uint256 _amountToReturn) external;
 }

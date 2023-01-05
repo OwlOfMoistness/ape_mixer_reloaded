@@ -13,9 +13,6 @@ interface IApeMatcherHelper {
 	}
 
 	struct GreatMatch {
-		bool	active;	
-		uint8	primary;			// alpha:1/beta:2
-		uint32	start;				// time of activation
 		uint96	doglessIndex;
 		uint96	ids;				// right most 48 bits => primary | left most 48 bits => doggo
 		address	primaryOwner;

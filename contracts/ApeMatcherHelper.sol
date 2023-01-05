@@ -151,7 +151,7 @@ contract ApeMatcherHelper {
 		RewardInfo[] memory arr = new RewardInfo[](_matchIds.length);
 		for (uint256 i = 0; i < _matchIds.length; i++) {
 			IApeMatcherHelper.GreatMatch memory _match = MATCHER.matches(_matchIds[i]);
-			uint256 tP = APE_STAKING.pendingRewards(_match.primary, SMOOTH, _match.ids & 0xffffffffffff);
+			uint256 tP = APE_STAKING.pendingRewards(_match.doglessIndex & 1 == 1 ? 1 : 2, SMOOTH, _match.ids & 0xffffffffffff);
 			uint256 tG;
 			if (_match.ids >> 48 > 0)
 				tG = APE_STAKING.pendingRewards(3, SMOOTH, _match.ids >> 48);
