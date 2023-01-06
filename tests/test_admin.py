@@ -12,7 +12,7 @@ def test_revert_operator(matcher, admin):
 	with reverts():
 		matcher.init(admin, admin, {'from':admin})
 
-def test_exec_smooth(smooth, admin, bayc, mayc, bakc, ape):
+def test_exec_smooth(smooth, admin, bayc, mayc, bakc, ape, matcher):
 	with reverts('Cannot call any assets handled by this contract'):
 		smooth.exec(bayc,'', {'from':admin})
 	with reverts('Cannot call any assets handled by this contract'):
@@ -21,6 +21,8 @@ def test_exec_smooth(smooth, admin, bayc, mayc, bakc, ape):
 		smooth.exec(bakc,'', {'from':admin})
 	with reverts('Cannot call any assets handled by this contract'):
 		smooth.exec(ape,'', {'from':admin})
+	with reverts('Cannot call any assets handled by this contract'):
+		smooth.exec(matcher,'', {'from':admin})
 	smooth.exec(admin,'', {'from':admin})
 
 def test_ownership(smooth, admin, matcher, dog_guy):

@@ -25,6 +25,8 @@ def test_deposit_one_type(matcher, ape, nft_guy, smooth, ape_staking, compounder
 	assert compounder.getStakedTotal() == BAYC_CAP
 	assert matcher.alphaDepositCounter() == 1
 	assert matcher.depositPosition(BAYC_CAP, 0) == (1, nft_guy)
+	with reverts():
+		compounder.withdraw({'from':nft_guy})
 
 	matcher.depositApeToken([0, 1, 0], {'from':nft_guy})
 	assert matcher.betaCurrentTotalDeposits() == 1

@@ -7,8 +7,8 @@ import "../interfaces/IApeMatcher.sol";
 import "../interfaces/IAggregatorV3Interface.sol";
 
 contract ApeStakingCompounder is Ownable {
-	IAggregatorV3Interface immutable ETH_FEED_USD = IAggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-	IAggregatorV3Interface immutable APE_FEED_USD = IAggregatorV3Interface(0xD10aBbC76679a20055E167BB80A24ac851b37056);
+	IAggregatorV3Interface immutable public ETH_FEED_USD = IAggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+	IAggregatorV3Interface immutable public APE_FEED_USD = IAggregatorV3Interface(0xD10aBbC76679a20055E167BB80A24ac851b37056);
 	// IApeStaking public immutable APE_STAKING = IApeStaking(0x5954aB967Bc958940b7EB73ee84797Dc8a2AFbb9);
 	// IERC20 public immutable APE = IERC20(0x4d224452801ACEd8B2F0aebE155379bb5D594381);
 
@@ -192,52 +192,39 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
-	function calculateApeToRecover(uint256 _gas) internal view returns(uint256) {
+	function refundApe(uint256 _gas) internal {
+		if (stopCoverFee) return;
 		(,int256 apePrice,,,) = APE_FEED_USD.latestRoundData();
 		(,int256 ethPrice,,,) = ETH_FEED_USD.latestRoundData();
 		uint256 gasPrice = tx.gasprice;
-		// Prevent rugging claim, you shouldnt claim if high fees
+		// Prevent abusing claim, you shouldnt claim if high fees
 		if (gasPrice > 80 gwei)
 			gasPrice = 80 gwei;
 		uint256 usdSpent = _gas * gasPrice * uint256(ethPrice); 
-
-		return usdSpent / uint256(apePrice);
+		uint256 toRecover = usdSpent / uint256(apePrice);
+		require(toRecover < getStakedTotal());
+		APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
 	}
 
 	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
-		gas = gas - gasleft();
 		compound();
-		if (!stopCoverFee) {
-			uint256 toRecover = calculateApeToRecover(gas);
-			require(toRecover < getStakedTotal());
-			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
-		}
+		refundApe(gas - gasleft());
 	}
 
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
-		gas = gas - gasleft();
 		compound();
-		if (!stopCoverFee) {
-			uint256 toRecover = calculateApeToRecover(gas);
-			require(toRecover < getStakedTotal());
-			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
-		}
+		refundApe(gas - gasleft());
 	}
 
 	function makeMatches() external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		uint256[] memory zero = new uint256[](0);
 		MATCHER.depositNfts(zero, zero, zero);
-		gas = gas - gasleft();
 		compound();
-		if (!stopCoverFee) {
-			uint256 toRecover = calculateApeToRecover(gas);
-			require(toRecover < getStakedTotal());
-			APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
-		}
+		refundApe(gas - gasleft());
 	}
 }
