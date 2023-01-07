@@ -63,7 +63,11 @@ contract ApeStakingCompounder is Ownable {
 		MATCHER = IApeMatcher(_matcher);
 	}
 
-
+	/**  
+	 * @notice
+	 * External function that allows the matcher contract to borrow funds
+	 * @param _amount Amount of tokens to borrow
+	 */
 	function borrow(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
 		require(!stopBorrow);
@@ -79,7 +83,13 @@ contract ApeStakingCompounder is Ownable {
 		debt -= _amount;
 	}
 
-	function repayAndWithdrawOnBehalf(uint256 _amount, address _user) external {
+	/**  
+	 * @notice
+	 * External function that allows the matcher contract to unlock funds of users
+	 * @param _amount Amount of tokens to unlock
+	 * @param _user User that will get funds unlocked
+	 */
+	function unlockOnBehalf(uint256 _amount, address _user) external {
 		require(msg.sender == address(MATCHER));
 		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
 
@@ -97,6 +107,10 @@ contract ApeStakingCompounder is Ownable {
 		return val;
 	}
 
+	/**  
+	 * @notice
+	 * View function that allows returns the amount of available borrowable funds int he contract
+	 */
 	function liquid() public view returns(uint256) {
 		return getStakedTotal() - totalFundsLocked;
 	}
@@ -109,6 +123,11 @@ contract ApeStakingCompounder is Ownable {
 				APE_STAKING.pendingRewards(0, address(this), 0)) * 1e18) / totalSupply;
 	}
 
+	/**  
+	 * @notice
+	 * In some cases tokens will be received directly and needs to be substracted to calculate proper price per share
+	 * @param _sub Amount to substract
+	 */
 	function pricePerShareBehalf(uint256 _sub) internal view returns(uint256) {
 		if (totalSupply == 0)
 			return 1e18;
@@ -117,6 +136,12 @@ contract ApeStakingCompounder is Ownable {
 				APE_STAKING.pendingRewards(0, address(this), 0) - _sub) * 1e18) / totalSupply;
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows to deposit funds on behalf of a user
+	 * @param _amount Amount to deposit
+	 * @param _user User getting the deposit
+	 */
 	function permissionnedDepositFor(uint256 _amount, address _user) public {
 		require(msg.sender == address(MATCHER));
 		uint256 shares = _amount * 1e18 / pricePerShare();
@@ -127,7 +152,13 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
-	function depositOnBehalf(uint256 _amount, address _user) external {
+	/**  
+	 * @notice
+	 * Function that allows to lock funds on behalf of a user
+	 * @param _amount Amount to lock
+	 * @param _user User getting the locked funds
+	 */
+	function lockOnBehalf(uint256 _amount, address _user) external {
 		require(msg.sender == address(MATCHER));
 		uint256 shares = _amount * 1e18 / pricePerShareBehalf(_amount);
 
@@ -162,7 +193,14 @@ contract ApeStakingCompounder is Ownable {
 		APE_STAKING.withdrawApeCoin(value, msg.sender);
 	}
 
-	function withdrawExactAmountOnBehalf(uint256 _amount, address _user, address _to) external {
+	/**  
+	 * @notice
+	 * Function that allows to unlock funds on behalf of a user and send them to the operator
+	 * @param _amount Amount to unlock
+	 * @param _user User from which we unlock funds
+	 * @param _to Recipient of Ape coins
+	 */
+	function withdrawAndUnlockExactAmountOnBehalf(uint256 _amount, address _user, address _to) external {
 		require(msg.sender == address(MATCHER));
 		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
 
