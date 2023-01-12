@@ -24,10 +24,6 @@ def test_revert_only_matcher_calls(matcher, coin_guy, compounder):
 	with reverts():
 		compounder.repay(0, {'from':coin_guy})
 	with reverts():
-		compounder.unlockOnBehalf(0, coin_guy, {'from':coin_guy})
-	with reverts():
 		compounder.permissionnedDepositFor(0, coin_guy, {'from':coin_guy})
 	with reverts():
-		compounder.lockOnBehalf(0, coin_guy, {'from':coin_guy})
-	with reverts():
-		compounder.withdrawAndUnlockExactAmountOnBehalf(0, coin_guy, coin_guy, {'from':coin_guy})
+		compounder.borrowAndWithdrawExactFor(0, coin_guy, {'from':coin_guy})

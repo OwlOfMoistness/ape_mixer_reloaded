@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -22,8 +23,6 @@ contract ApeStakingCompounder is Ownable {
 	uint256 public totalSupply;
 	mapping(address => uint256) public balanceOf;
 	uint256 public debt;
-	mapping(address => uint256) public fundsLocked;
-	uint256 public totalFundsLocked;
 
 	bool public stopBorrow;
 	bool public stopCoverFee;
@@ -74,7 +73,7 @@ contract ApeStakingCompounder is Ownable {
 	 * View function that allows returns the amount of available borrowable funds int he contract
 	 */
 	function liquid() public view returns(uint256) {
-		return getStakedTotal() - totalFundsLocked;
+		return getStakedTotal();
 	}
 
 	function pricePerShare() public view returns(uint256) {
@@ -105,77 +104,28 @@ contract ApeStakingCompounder is Ownable {
 	 */
 	function borrow(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
-		require(!stopBorrow);
+		uint256 _liquid = liquid();
+		if (stopBorrow) _liquid = 0;
 		// cannot borrow totalStaked to prevent transferring pending rewards to operator
-		require(_amount < liquid());
+		require(_amount < _liquid);
 
 		debt += _amount;
 		APE_STAKING.withdrawApeCoin(_amount, SMOOTH);
 	}
 
+	function borrowAndWithdrawExactFor(uint256 _amount, address _user) external {
+		require(msg.sender == address(MATCHER));
+		uint256 _liquid = liquid();
+		if (stopBorrow) _liquid = 0;
+		require(_amount < _liquid);
+
+		debt += _amount;
+		APE_STAKING.withdrawApeCoin(_amount, _user);
+	}
+
 	function repay(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
 		debt -= _amount;
-	}
-
-	/**  
-	 * @notice
-	 * Function that allows to lock funds on behalf of a user
-	 * @param _amount Amount to lock
-	 * @param _user User getting the locked funds
-	 */
-	function lockOnBehalf(uint256 _amount, address _user) external {
-		require(msg.sender == address(MATCHER));
-		uint256 shares = _amount * 1e18 / pricePerShareBehalf(_amount);
-
-		balanceOf[_user] += shares;
-		totalSupply += shares;
-		fundsLocked[_user] += _amount;
-		totalFundsLocked += _amount;
-		compound();
-	}
-
-	/**  
-	 * @notice
-	 * External function that allows the matcher contract to unlock funds of users
-	 * @param _amount Amount of tokens to unlock
-	 * @param _user User that will get funds unlocked
-	 */
-	function unlockOnBehalf(uint256 _amount, address _user) external {
-		require(msg.sender == address(MATCHER));
-		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
-
-		debt -= _amount;
-
-		balanceOf[_user] -= sharesToWithdraw;
-		totalSupply -= sharesToWithdraw;
-		fundsLocked[_user] -= _amount;
-		totalFundsLocked -= _amount;
-	}
-
-	/**  
-	 * @notice
-	 * Function that allows to unlock funds on behalf of a user and send them to the operator
-	 * @param _amount Amount to unlock
-	 * @param _user User from which we unlock funds
-	 * @param _to Recipient of Ape coins
-	 */
-	function withdrawAndUnlockExactAmountOnBehalf(uint256 _amount, address _user, address _to) external {
-		require(msg.sender == address(MATCHER));
-		uint256 sharesToWithdraw = _amount * 1e18 /  pricePerShare();
-
-		balanceOf[_user] -= sharesToWithdraw;
-		totalSupply -= sharesToWithdraw;
-		fundsLocked[_user] -= _amount;
-		totalFundsLocked -= _amount;
-		// must be checked as withdrawing the total amount staked results in also transfering the rewards to the recipient
-		// which needs to be the vault in our case
-		if (_amount == getStakedTotal()) {
-			APE_STAKING.withdrawApeCoin(_amount, address(this));
-			APE.transfer(_to, _amount);
-		}
-		else
-			APE_STAKING.withdrawApeCoin(_amount, _to);
 	}
 
 	/**  
@@ -190,7 +140,7 @@ contract ApeStakingCompounder is Ownable {
 
 		balanceOf[_user] += shares;
 		totalSupply += shares;
-		APE.transferFrom(_user, address(this), _amount);
+		APE.transferFrom(msg.sender, address(this), _amount);
 		compound();
 	}
 
@@ -209,8 +159,6 @@ contract ApeStakingCompounder is Ownable {
 
 	function withdraw(uint256 _shares) public {
 		uint256 value = _shares * pricePerShare() / 1e18;
-		uint256 totalValue = balanceOf[msg.sender] * pricePerShare() / 1e18;
-		require(totalValue - value >= fundsLocked[msg.sender]);
 
 		balanceOf[msg.sender] -= _shares;
 		totalSupply -= _shares;
@@ -242,13 +190,6 @@ contract ApeStakingCompounder is Ownable {
 		uint256 toRecover = usdSpent / uint256(apePrice);
 		require(toRecover < getStakedTotal());
 		APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
-	}
-
-	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[4][] memory _swapSetup) external onlyKeepers(msg.sender) {
-		uint256 gas = gasleft();
-		MATCHER.batchSmartBreakMatch(_matchIds, _swapSetup);
-		compound();
-		refundApe(gas - gasleft());
 	}
 
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {

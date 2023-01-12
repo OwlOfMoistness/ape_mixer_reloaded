@@ -36,19 +36,19 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, bakc, nft_guy, coin_guy, 
 	matcher.depositNfts([1,2,3,4,5], [], [], {'from':nft_guy})
 	matcher.depositNfts([], [], [1,2,3,4,5], {'from':dog_guy})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, dog_guy, compounder)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (1, nft_guy, dog_guy, False)
 	assert compounder.debt() == BAKC_CAP * 5 + BAYC_CAP * 5
 
 	compounder.batchBreakMatch([0,1,2,3,4], [False]*5, {'from':admin})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (1, nft_guy, NULL, False)
 	matcher.depositNfts([], [], [], {'from':dog_guy})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, dog_guy, compounder)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (1, nft_guy, dog_guy, False)
 	compounder.batchBreakMatch([0,1,2,3,4], [True]*5, {'from':admin})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (0, NULL, NULL, NULL, NULL)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (0, NULL, NULL, False)

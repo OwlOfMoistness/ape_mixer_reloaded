@@ -52,6 +52,6 @@ def test_smooth_access(smooth, dog_guy):
 	with reverts("Smooth: Can't toucht this"):
 		smooth.bindDoggoToExistingPrimary(NULL,0,0, {'from':dog_guy})
 	with reverts("Smooth: Can't toucht this"):
-		smooth.unbindDoggoFromExistingPrimary(NULL,0,0,NULL,NULL,NULL, {'from':dog_guy})
+		smooth.unbindDoggoFromExistingPrimary(NULL,0,0,NULL,NULL, {'from':dog_guy})
 	with reverts("Smooth: Can't toucht this"):
-		smooth.uncommitNFTs((0,0,NULL,NULL,NULL,NULL),NULL, {'from':dog_guy})
+		smooth.uncommitNFTs((False,0,0,NULL,NULL),NULL, {'from':dog_guy})
