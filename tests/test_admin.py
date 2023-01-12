@@ -55,3 +55,41 @@ def test_smooth_access(smooth, dog_guy):
 		smooth.unbindDoggoFromExistingPrimary(NULL,0,0,NULL,NULL, {'from':dog_guy})
 	with reverts("Smooth: Can't toucht this"):
 		smooth.uncommitNFTs((False,0,0,NULL,NULL),NULL, {'from':dog_guy})
+
+def test_correct_weights(matcher, admin):
+	weight = matcher.weights()
+	_uint16Mask = 0xffff
+
+	alpha_weight = weight >> (64 * 2)
+	alpha_arr = []
+	alpha_arr.append(((alpha_weight >> (16 * 3)) & _uint16Mask))
+	alpha_arr.append(((alpha_weight >> (16 * 2)) & _uint16Mask))
+	alpha_arr.append(((alpha_weight >> (16 * 1)) & _uint16Mask))
+	alpha_arr.append(((alpha_weight >> (16 * 0)) & _uint16Mask))
+	assert alpha_arr[0] == 500
+	assert alpha_arr[1] == 500
+	assert alpha_arr[2] == 0
+	assert alpha_arr[3] == 0
+
+	beta_weight = weight >> (64 * 1)
+	beta_arr = []
+	beta_arr.append(((beta_weight >> (16 * 3)) & _uint16Mask))
+	beta_arr.append(((beta_weight >> (16 * 2)) & _uint16Mask))
+	beta_arr.append(((beta_weight >> (16 * 1)) & _uint16Mask))
+	beta_arr.append(((beta_weight >> (16 * 0)) & _uint16Mask))
+	print(beta_arr)
+	assert beta_arr[0] == 500
+	assert beta_arr[1] == 500
+	assert beta_arr[2] == 0
+	assert beta_arr[3] == 0
+
+	gamma_weight = weight >> (64 * 0)
+	gamma_arr = []
+	gamma_arr.append(((gamma_weight >> (16 * 3)) & _uint16Mask))
+	gamma_arr.append(((gamma_weight >> (16 * 2)) & _uint16Mask))
+	gamma_arr.append(((gamma_weight >> (16 * 1)) & _uint16Mask))
+	gamma_arr.append(((gamma_weight >> (16 * 0)) & _uint16Mask))
+	assert gamma_arr[0] == 100
+	assert gamma_arr[1] == 100
+	assert gamma_arr[2] == 400
+	assert gamma_arr[3] == 400

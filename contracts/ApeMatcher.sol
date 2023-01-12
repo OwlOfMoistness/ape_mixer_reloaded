@@ -73,17 +73,22 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	/**  
 	 * @notice
 	 * Updates the weights that dictates how rewards are split. Owner gated
-	 * @param _primaryWeights Array containing the weights for primary splits
-	  * @param _dogWeights Array containing the weights for secondary splits
+	 * @param _alphaWeights Array containing the weights for alpha splits
+	 * @param _betaWeights Array containing the weights for beta splits
+	 * @param _gammaWeights Array containing the weights for secondary splits
 	 */
-	function updateWeights(uint32[4] calldata _primaryWeights, uint32[4] calldata _dogWeights) external onlyOwner {
-		require(_primaryWeights[0] + _primaryWeights[1] + _primaryWeights[2] + _primaryWeights[3] == 1000);
-		require(_primaryWeights[2] + _primaryWeights[3] == 0);
-		require(_dogWeights[0] + _dogWeights[1] + _dogWeights[2] + _dogWeights[3] == 1000);
+	function updateWeights(uint16[4] calldata _alphaWeights, uint16[4] calldata _betaWeights, uint16[4] calldata _gammaWeights) external onlyOwner {
+		require(_alphaWeights[0] + _alphaWeights[1] + _alphaWeights[2] + _alphaWeights[3] == 1000);
+		require(_betaWeights[0] + _betaWeights[1] + _betaWeights[2] + _betaWeights[3] == 1000);
+
+		require(_alphaWeights[2] + _alphaWeights[3] == 0);
+		require(_betaWeights[2] + _betaWeights[3] == 0);
+		require(_gammaWeights[0] + _gammaWeights[1] + _gammaWeights[2] + _gammaWeights[3] == 1000);
 
 		uint256 val;
+		// using 192 bits: 3 sections of 64 bits each. Each section subdivided in 4 sections of 16
 		for (uint256 i = 0; i < 4 ; i++)
-			val |= (uint256(_primaryWeights[i]) << (32 * (7 - i))) + (uint256(_dogWeights[i]) << (32 * (3 - i)));
+			val |= (uint256(_alphaWeights[i]) << (16 * (11 - i))) + (uint256(_betaWeights[i]) << (16 * (7 - i))) + (uint256(_gammaWeights[i]) << (16 * (3 - i)));
 		weights = val;
 	}
 
@@ -248,7 +253,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 ids = _match.ids;
 		(uint256 totalPrimary, uint256 totalGamma) = smoothOperator.claim(primary, ids & 0xffffffffffff, ids >> 48,
 			claimGamma && claimPrimary ? 2 : (claimGamma ? 0 : 1));
-		_fee += _handleRewards(totalPrimary, totalGamma, adds);	
+		_fee += _handleRewards(totalPrimary, totalGamma, adds, primary == address(ALPHA));	
 	}
 
 	/**  
@@ -267,7 +272,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 		uint256 totalPrimary;
 		uint256 totalGamma;
 		(totalPrimary, totalGamma, toReturnToUser) = _smartSwap(_swapSetup, ids, primary, _matchId, _borrowed, msg.sender);
-		_fee += _handleRewards(totalPrimary, totalGamma, adds);	
+		_fee += _handleRewards(totalPrimary, totalGamma, adds, primary == address(ALPHA));	
 	}
 
 	/**  
@@ -360,7 +365,7 @@ contract ApeMatcher is Pausable, IApeMatcher {
 				delete doglessMatches[doglessMatchCounter - 1];
 			}
 			delete matches[_matchId];
-			_fee += _handleRewards(totalPrimary, totalGamma, adds);	
+			_fee += _handleRewards(totalPrimary, totalGamma, adds, _match.doglessIndex & 1 == 1);	
 		}
 	}
 
@@ -371,14 +376,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 */
 	function _breakDogMatch(uint256 _matchId, uint256 _doglessMatchCounter, address[4] memory _adds) internal returns(uint256, uint256){
 		(uint256 totalGamma, uint256 toReturnToVault) = _unbindDoggoFromMatchId(_matchId, msg.sender, _doglessMatchCounter);
-		return (_processRewards(totalGamma, _adds, msg.sender, true), toReturnToVault);
+		return (_processRewards(totalGamma, _adds, msg.sender, 0), toReturnToVault);
 	}
 
-	function _handleRewards(uint256 _totalPrimary, uint256 _totalGamma, address[4] memory _adds) internal returns(uint256 _fee) {
+	function _handleRewards(uint256 _totalPrimary, uint256 _totalGamma, address[4] memory _adds, bool alpha) internal returns(uint256 _fee) {
 		if (_totalPrimary > 0)
-			_fee += _processRewards(_totalPrimary, _adds, msg.sender, false);
+			_fee += _processRewards(_totalPrimary, _adds, msg.sender, alpha ? 2 : 1);
 		if (_totalGamma > 0)
-			_fee += _processRewards(_totalGamma, _adds, msg.sender, true);
+			_fee += _processRewards(_totalGamma, _adds, msg.sender, 0);
 	}
 
 	/**  
@@ -387,14 +392,14 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * @param _total Amount of tokens to distribute to users
 	 * @param _adds Array of users involved
 	 * @param _user Initial caller of the execution
-	 * @param _claimGamma Boolean indicating if the reward came from a primary of dog claim
+	 * @param _offset Offset to right bit shift to get weights (BAYC = 2 | MAYC = 1 | BAKC = 0)
 	 */
-	function _processRewards(uint256 _total, address[4] memory _adds, address _user, bool _claimGamma) internal returns(uint256 _fee){
-		uint128[4] memory splits = _smartSplit(uint128(_total), _adds, _claimGamma, weights);
+	function _processRewards(uint256 _total, address[4] memory _adds, address _user, uint256 _offset) internal returns(uint256 _fee){
+		uint128[4] memory splits = _smartSplit(uint128(_total), _adds, _offset, weights);
 		for (uint256 i = 0 ; i < 4; i++)
 			if (splits[i] > 0) {
 				// If you own both primary nft and deposit token, no fee charged
-				if ((i == 0 || i == 1) && _user == _adds[0] && _user == _adds[1] && !_claimGamma)
+				if ((i == 0 || i == 1) && _user == _adds[0] && _user == _adds[1] && _offset > 0)
 					payments[_adds[i]] += splits[i];
 				else {
 					_fee += splits[i] * FEE / DENOMINATOR;
@@ -408,12 +413,12 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	 * Internal function that handles the payment split of a given reward
 	 * @param _total Amount of tokens to distribute to users
 	 * @param _adds Array of users involved
-	 * @param _claimGamma Boolean indicating if the reward came from a primary of dog claim
+	 * @param _offset Offset to right bit shift to get weights (BAYC = 2 | MAYC = 1 | BAKC = 0)
 	 * @param _weight Value holding the split ratios of primary and dog claims
 	 */
-	function _smartSplit(uint128 _total, address[4] memory _adds, bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory splits) {
+	function _smartSplit(uint128 _total, address[4] memory _adds, uint256 _offset, uint256 _weight) internal pure returns(uint128[4] memory splits) {
 		uint256 i = 0;
-		splits = _getWeights(_claimGamma, _weight);
+		splits = _getWeights(_offset, _weight);
 		uint128 sum  = splits[0] + splits[1] + splits[2] + splits[3];
 
 		// update splits
@@ -659,19 +664,17 @@ contract ApeMatcher is Pausable, IApeMatcher {
 	/**
 	 * @notice
 	 * Internal function that fetches the split ratio of a given claim (primary or dog)
-	 * @param _claimGamma Boolean that indicates if this is a dog claim or not
+	 * @param _offset Offset to right bit shift to get weights (BAYC = 2 | MAYC = 1 | BAKC = 0)
 	 * @param _weight Value holding the split ratios
 	 */
-	function _getWeights(bool _claimGamma, uint256 _weight) internal pure returns(uint128[4] memory _weights) {
-		uint256 dogMask = (2 << 128) - 1;
-		uint256 _uint32Mask = (2 << 32) - 1;
-		if (_claimGamma)
-			_weight &= dogMask;
-		else
-			_weight >>= 128;
-		_weights[0] = uint128((_weight >> (32 * 3)) & _uint32Mask);
-		_weights[1] = uint128((_weight >> (32 * 2)) & _uint32Mask);
-		_weights[2] = uint128((_weight >> (32 * 1)) & _uint32Mask);
-		_weights[3] = uint128((_weight >> (32 * 0)) & _uint32Mask);
+	function _getWeights(uint256 _offset, uint256 _weight) internal pure returns(uint128[4] memory _weights) {
+		uint256 mask = 0xffffffffffffffff;
+		uint256 _uint16Mask = 0xffff;
+
+		_weight = (_weight >> (64 * _offset)) & mask;
+		_weights[0] = uint128((_weight >> (16 * 3)) & _uint16Mask);
+		_weights[1] = uint128((_weight >> (16 * 2)) & _uint16Mask);
+		_weights[2] = uint128((_weight >> (16 * 1)) & _uint16Mask);
+		_weights[3] = uint128((_weight >> (16 * 0)) & _uint16Mask);
 	}
 }
