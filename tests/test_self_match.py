@@ -62,3 +62,12 @@ def test_many_mayc_self_match(matcher, ape, mayc, nft_guy, coin_guy, ape_staking
 	assert (dogless & 1, ids, pO, dO, self) == (0, 7, nft_guy, NULL, True)
 	(self, dogless, ids, pO, dO) = matcher.matches(7)
 	assert (dogless & 1, ids, pO, dO, self) == (0, 8, nft_guy, NULL, True)
+
+def test_smart_break(matcher, ape, mayc, nft_guy, coin_guy, ape_staking, smooth, chain, compounder):
+	ape.approve(compounder, 2 ** 256 - 1, {'from':nft_guy})
+	compounder.deposit('100000 ether', {'from':nft_guy})
+	debt = compounder.debt()
+	matcher.batchSmartBreakMatch([5], [[False, True, False]], {'from':nft_guy})
+	(self, dogless, ids, pO, dO) = matcher.matches(5)
+	assert (dogless & 1, ids, pO, dO, self) == (0, 6, nft_guy, NULL, False)
+	assert compounder.debt() - debt == '2042 ether'
