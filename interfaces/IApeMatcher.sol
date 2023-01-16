@@ -21,6 +21,7 @@ interface IApeMatcher {
 		uint256[] calldata _alphaIds,
 		uint256[] calldata _betaIds,
 		uint256[] calldata _gammaIds) external;
+	function assetToUser(address, uint256) external view returns(address);
 	function batchClaimRewardsFromMatches(uint256[] calldata _matchIds, uint256 _claim) external;
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external;
 	function batchSmartBreakMatch(uint256[] calldata _matchIds, bool[3][] memory _swapSetup) external;

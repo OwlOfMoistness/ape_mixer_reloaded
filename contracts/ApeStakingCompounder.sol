@@ -86,19 +86,6 @@ contract ApeStakingCompounder is Ownable {
 
 	/**  
 	 * @notice
-	 * In some cases tokens will be received directly and needs to be substracted to calculate proper price per share
-	 * @param _sub Amount to substract
-	 */
-	function pricePerShareBehalf(uint256 _sub) internal view returns(uint256) {
-		if (totalSupply == 0)
-			return 1e18;
-		return ((getStakedTotal() + debt + 
-				APE.balanceOf(address(this)) +
-				APE_STAKING.pendingRewards(0, address(this), 0) - _sub) * 1e18) / totalSupply;
-	}
-
-	/**  
-	 * @notice
 	 * External function that allows the matcher contract to borrow funds
 	 * @param _amount Amount of tokens to borrow
 	 */

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ISmoothOperator.sol";
 import "../interfaces/IApeStaking.sol";
 import "../interfaces/IApeMatcher.sol";
-
+import "./FlashLoanProxy.sol";
 
 contract SmoothOperator is Ownable, ISmoothOperator {
 
@@ -310,5 +310,21 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 				_target != address(manager), "Cannot call any assets handled by this contract");
 		(bool success,) = _target.call{value:msg.value}(_data);
 		require(success);
+	}
+
+	address flashLoanProxy;
+	function flashloanAsset(address _nft, uint256[] calldata _tokenIds, address _target, bytes calldata _data) external {
+		for (uint256 i = 0; i < _tokenIds.length; i++) {
+			require(IApeMatcher(manager).assetToUser(_nft, _tokenIds[i]) == msg.sender);
+
+			IERC721Enumerable(_nft).transferFrom(address(this), flashLoanProxy, _tokenIds[i]);
+			FlashloanManager(flashLoanProxy).executeFlashLoan(_nft, _tokenIds[i], _target, _data);
+
+			require(IERC721Enumerable(_nft).ownerOf(_tokenIds[i]) == address(this));
+			uint256 poolId = _nft == address(ALPHA) ? 1 : (_nft == address(BETA) ? 2 : 3);
+			uint256 share = _nft == address(ALPHA) ? ALPHA_SHARE : (_nft == address(BETA) ? BETA_SHARE : GAMMA_SHARE);
+			IApeStaking.Position memory pos = APE_STAKING.nftPosition(poolId, _tokenIds[i]);
+			require (pos.stakedAmount == share, "incorrect stake");
+		}
 	}
 }
