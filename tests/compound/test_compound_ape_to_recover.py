@@ -33,8 +33,8 @@ def test_make_matches(compounder, ape, bayc, nft_guy, coin_guy, matcher, admin, 
 	assert ape.balanceOf(admin) == 0
 	compounder.makeMatches({'from':admin, 'gas_price':'20 gwei'})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (1, nft_guy, NULL, False)
 	assert ape.balanceOf(admin) > 0
 
 @pytest.mark.require_network("mainnet-fork")
@@ -42,8 +42,8 @@ def test_break_matches(compounder, ape, bayc, nft_guy, coin_guy, matcher, admin,
 	pre = ape.balanceOf(admin)
 	compounder.batchBreakMatch([0,1,2,3], [True] * 4, {'from':admin, 'gas_price':'20 gwei'})
 	for i in range(4):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (0, NULL, NULL, NULL, NULL)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (0, NULL, NULL, False)
 	assert ape.balanceOf(admin) - pre > 0
 
 @pytest.mark.require_network("mainnet-fork")
@@ -52,6 +52,6 @@ def test_smart_break_matches(compounder, ape, bayc, nft_guy, coin_guy, matcher, 
 	matcher.withdrawNfts([1,3,4,5],[],[], {'from':nft_guy})
 	matcher.depositApeToken([1, 0, 0], {'from':coin_guy})
 	compounder.batchSmartBreakMatch([4], [[True, True, True, True]], {'from':admin, 'gas_price':'20 gwei'})
-	(dogless, ids, pO, pT, dO, dT) = matcher.matches(4)
-	assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, coin_guy, NULL, NULL)
+	(self, dogless, ids, pO, dO) = matcher.matches(4)
+	assert (dogless & 1, pO, dO, self) == (1, nft_guy, NULL, False)
 	assert ape.balanceOf(admin) - pre > 0

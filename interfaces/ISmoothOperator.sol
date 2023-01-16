@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
 import "./IApeMatcher.sol";
@@ -5,7 +6,7 @@ import "./IApeMatcher.sol";
 interface ISmoothOperator {
 	function commitNFTs(address _primary, uint256 _tokenId, uint256 _gammaId) external;
 
-	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external returns(uint256, uint256, uint256);
+	function uncommitNFTs(IApeMatcher.GreatMatch calldata _match, address _caller) external returns(uint256, uint256, uint256, uint256);
 
 	function claim(address _primary, uint256 _tokenId, uint256 _gammaId, uint256 _claimSetup) external returns(uint256 total, uint256 totalGamma);
 
@@ -30,7 +31,6 @@ interface ISmoothOperator {
 		uint256 _tokenId,
 		uint256 _gammaId,
 		address _receiver,
-		address _tokenOwner,
 		address _caller) external returns(uint256 totalGamma, uint256 toReturn);
 
 	function repayDebt(address _vault, uint256 _amountToReturn) external;

@@ -45,13 +45,10 @@ def test_match_from_borrow_bayc(compounder, ape, bayc, nft_guy, coin_guy, matche
 	liquid = compounder.liquid()
 	matcher.depositNfts([1,2,3,4,5], [], [], {'from':nft_guy})
 	for i in range(5):
-		(dogless, ids, pO, pT, dO, dT) = matcher.matches(i)
-		assert (dogless & 1, pO, pT, dO, dT) == (1, nft_guy, compounder, NULL, NULL)
+		(self, dogless, ids, pO, dO) = matcher.matches(i)
+		assert (dogless & 1, pO, dO, self) == (1, nft_guy, NULL, False)
 	assert compounder.debt() == BAYC_CAP * 5
 	assert liquid - compounder.liquid() == BAYC_CAP * 5
-	assert matcher.alphaSpentCounter() == 0
-	assert matcher.alphaDepositCounter() == 0
-	assert matcher.alphaCurrentTotalDeposits() == 0
 	pre = compounder.pricePerShare()
 	for i in range(10):
 		chain.sleep(86400)
@@ -74,7 +71,6 @@ def test_withdraw_all(compounder, ape, bayc, nft_guy, coin_guy, matcher, ape_sta
 			compounder.withdraw({'from':acc})
 		assert compounder.balanceOf(acc) == 0
 	assert compounder.debt() == 0
-	assert compounder.totalFundsLocked() == 0
 	assert compounder.totalSupply() == 0
 	assert compounder.liquid() <= '0.00001 ether'
 	assert compounder.pricePerShare() == '1 ether'
