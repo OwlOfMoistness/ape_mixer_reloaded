@@ -312,7 +312,12 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 		require(success);
 	}
 
-	address flashLoanProxy;
+	address public flashLoanProxy;
+
+	function updateFlashloanProxy(address _proxy) external onlyOwner {
+		flashLoanProxy = _proxy;
+	}
+
 	function flashloanAsset(address _nft, uint256[] calldata _tokenIds, address _target, bytes calldata _data) external {
 		for (uint256 i = 0; i < _tokenIds.length; i++) {
 			require(IApeMatcher(manager).assetToUser(_nft, _tokenIds[i]) == msg.sender);
@@ -321,6 +326,7 @@ contract SmoothOperator is Ownable, ISmoothOperator {
 			FlashloanManager(flashLoanProxy).executeFlashLoan(_nft, _tokenIds[i], _target, _data);
 
 			require(IERC721Enumerable(_nft).ownerOf(_tokenIds[i]) == address(this));
+			require(IApeMatcher(manager).assetToUser(_nft, _tokenIds[i]) == msg.sender);
 			uint256 poolId = _nft == address(ALPHA) ? 1 : (_nft == address(BETA) ? 2 : 3);
 			uint256 share = _nft == address(ALPHA) ? ALPHA_SHARE : (_nft == address(BETA) ? BETA_SHARE : GAMMA_SHARE);
 			IApeStaking.Position memory pos = APE_STAKING.nftPosition(poolId, _tokenIds[i]);
