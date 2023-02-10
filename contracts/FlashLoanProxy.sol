@@ -12,10 +12,19 @@ contract FlashloanManager is Ownable {
 	}
 
 	function executeFlashLoan(address _nft, uint256 _tokenId, address _implementation, bytes calldata _data) external {
-		require(validImplementations[_implementation]);
+		require(validImplementations[_implementation], "imp");
 
 		(bool success,) = _implementation.delegatecall(_data);
 		require(success);
 		IERC721Enumerable(_nft).transferFrom(address(this), msg.sender, _tokenId);
+	}
+
+	/**
+	 * @notice
+	 * Nothing should be in this contract. Shame on you if you send anything.
+	 */
+	function exec(address _target, bytes calldata _data) external payable onlyOwner {
+		(bool success,) = _target.call{value:msg.value}(_data);
+		require(success);
 	}
 }

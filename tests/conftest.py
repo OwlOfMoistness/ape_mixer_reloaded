@@ -79,11 +79,15 @@ def compounder(ApeStakingCompounder, ape, ape_staking, admin):
 	comp = ApeStakingCompounder.deploy(ape_staking, ape, {'from':admin})
 	return comp
 
+@pytest.fixture(scope="module")
+def flash_manager(FlashloanManager, admin):
+	return FlashloanManager.deploy({'from':admin})
 
 @pytest.fixture(scope="module")
-def matcher(ApeMatcher, SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, compounder, chain):
+def matcher(ApeMatcher, SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, compounder, flash_manager, chain):
 	ma =  ApeMatcher.deploy(bayc, mayc, bakc, ape, ape_staking,{'from':admin})
 	ope =  SmoothOperator.deploy(ma, bayc, mayc, bakc, ape, ape_staking,{'from':admin})
+	ope.updateFlashloanProxy(flash_manager, {'from':admin})
 	ma.init(ope, compounder, {'from':admin})
 	ma.updateWeights([500,500,0,0], [500,500,0,0], [100,100,400,400], {'from':admin})
 	compounder.setMatcher(ma,{'from':admin})
@@ -101,3 +105,11 @@ def smooth(SmoothOperator, admin, bayc, mayc, bakc, ape, ape_staking, matcher):
 @pytest.fixture(scope="module")
 def split(MockSplit, admin, ):
 	return MockSplit.deploy({'from':admin})
+
+@pytest.fixture(scope="module")
+def redeemer(TokenRedeemer,bayc, ape, admin):
+	return TokenRedeemer.deploy(bayc, ape, {'from':admin})
+
+@pytest.fixture(scope="module")
+def flash_redeemer(FLTokenRedeemer, redeemer, ape, admin):
+	return FLTokenRedeemer.deploy(redeemer, ape, {'from':admin})
