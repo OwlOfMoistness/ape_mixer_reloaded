@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -100,6 +100,12 @@ contract ApeStakingCompounder is Ownable {
 		APE_STAKING.withdrawApeCoin(_amount, SMOOTH);
 	}
 
+	/**  
+	 * @notice
+	 * External function that allows the matcher contract to borrow funds and send it to a user for repayment
+	 * @param _amount Amount of tokens to borrow
+	 * @param _user User receiving the funds
+	 */
 	function borrowAndWithdrawExactFor(uint256 _amount, address _user) external {
 		require(msg.sender == address(MATCHER));
 		uint256 _liquid = liquid();
@@ -110,6 +116,10 @@ contract ApeStakingCompounder is Ownable {
 		APE_STAKING.withdrawApeCoin(_amount, _user);
 	}
 
+	/**  
+	 * @notice
+	 * Repay debt. Callable by matcher.
+	 */
 	function repay(uint256 _amount) external {
 		require(msg.sender == address(MATCHER));
 		debt -= _amount;
@@ -131,6 +141,11 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows users to deposit funds
+	 * @param _amount Amount to deposit
+	 */
 	function deposit(uint256 _amount) external {
 		uint256 shares = _amount * 1e18 / pricePerShare();
 
@@ -140,10 +155,19 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows users to withdraw shares
+	 */
 	function withdraw() external {
 		withdraw(balanceOf[msg.sender]);
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows users to withdraw shares
+	 * @param _shares Amount to withdraw
+	 */
 	function withdraw(uint256 _shares) public {
 		uint256 value = _shares * pricePerShare() / 1e18;
 
@@ -165,6 +189,12 @@ contract ApeStakingCompounder is Ownable {
 		compound();
 	}
 
+
+	/**  
+	 * @notice
+	 * Function that allows refund gas used in APE coins based on price provided by chainlink feeds
+	 * @param _gas Gas to be refunded
+	 */
 	function refundApe(uint256 _gas) internal {
 		if (stopCoverFee) return;
 		(,int256 apePrice,,,) = APE_FEED_USD.latestRoundData();
@@ -179,6 +209,12 @@ contract ApeStakingCompounder is Ownable {
 		APE_STAKING.withdrawApeCoin(toRecover, msg.sender);
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows a keeper to break matches to free some funds
+	 * @param _matchIds Match IDs to break
+	 * @param _breakAll Boolean array specifying breaking the whole match or just the BAKC
+	 */
 	function batchBreakMatch(uint256[] calldata _matchIds, bool[] calldata _breakAll) external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		MATCHER.batchBreakMatch(_matchIds, _breakAll);
@@ -186,6 +222,10 @@ contract ApeStakingCompounder is Ownable {
 		refundApe(gas - gasleft());
 	}
 
+	/**  
+	 * @notice
+	 * Function that allows a keeper to make matches
+	 */
 	function makeMatches() external onlyKeepers(msg.sender) {
 		uint256 gas = gasleft();
 		uint256[] memory zero = new uint256[](0);
